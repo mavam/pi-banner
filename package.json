@@ -1,0 +1,38 @@
+{
+  "name": "pi-banner",
+  "version": "0.1.0",
+  "description": "A rainbow pi banner extension for pi",
+  "type": "module",
+  "files": [
+    "banner.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "banner",
+    "header"
+  ],
+  "author": "Matthias Vallentin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mavam/pi-banner.git"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types *.test.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./banner.ts"
+    ]
+  }
+}
