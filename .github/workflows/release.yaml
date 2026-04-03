@@ -1,4 +1,4 @@
-name: Release
+name: Release and Publish
 
 on:
   workflow_dispatch:
@@ -20,10 +20,34 @@ on:
 
 jobs:
   release:
-    uses: tenzir/ship/.github/workflows/reusable-release.yaml@main
+    name: Create GitHub release
+    uses: tenzir/ship/.github/workflows/release.yaml@main
     permissions:
       contents: write
     with:
       intro: ${{ inputs.intro }}
       title: ${{ inputs.title }}
-    secrets: inherit
+
+  publish:
+    name: Publish package to npm
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ needs.release.outputs.version }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Publish to npm
+        run: npm publish
