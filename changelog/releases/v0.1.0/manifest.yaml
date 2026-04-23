@@ -1,0 +1,6 @@
+created: 2026-04-23
+title: Initial Pi Banner release
+intro: "This release introduces Pi Banner, a rainbow banner extension for pi that\
+  \ replaces the default header with colorful \u03C0 ASCII art."
+source:
+  mode: sync-stable-queue
