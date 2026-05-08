@@ -1,6 +1,6 @@
 # 🌈 pi-banner
 
-A [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent)
+A [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent)
 extension that replaces the default header with the rainbow π ASCII art banner.
 
 ## 📦 Install
