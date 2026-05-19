@@ -1,0 +1,8 @@
+created: 2026-05-19
+title: Node runtime compatibility
+intro: >-
+  This release removes Pi Banner's package-level Node.js engine restriction so compatibility
+  follows Pi's supported runtime range.
+source:
+  mode: sync-stable-queue
+  previous_stable: v0.1.1
