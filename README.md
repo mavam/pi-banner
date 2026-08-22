@@ -1,7 +1,7 @@
 # 🌈 pi-banner
 
-A [pi](https://github.com/earendil-works/pi-mono/tree/main/packages/coding-agent)
-extension that replaces the default header with the rainbow π ASCII art banner.
+A [Pi](https://pi.dev) extension that replaces the default header with the
+rainbow π ASCII art banner.
 
 ## 🚀 Installation
 
@@ -33,12 +33,6 @@ Ascii art that makes `neofetch` users wish they'd thought of it first:
           70193          85211        05
         5596446           22948954930381
        9644288             10975665933
-```
-
-## 🧹 Uninstall
-
-```sh
-pi remove npm:pi-banner
 ```
 
 ## 📄 License
