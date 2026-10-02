@@ -2,6 +2,7 @@
  * Adapted from Pi v1.0.0's logo Easter egg:
  * https://github.com/earendil-works/pi/blob/v1.0.0/packages/coding-agent/src/modes/interactive/components/pi-logo-animation.ts
  *
+ * Original renderer by Armin Ronacher (@mitsuhiko).
  * Copyright (c) 2025 Mario Zechner. MIT; see LICENSE.
  * Keeps the original pixel blocks, visible-face rasterizer, depth buffer, and lighting.
  * The fullscreen dissolve, sliding puzzle, and starfield are not part of the startup header.
