@@ -5,15 +5,16 @@ authors:
   - mavam
 prs:
   - 4
-created: 2026-10-02T06:23:41.574244Z
+created: 2026-10-02T06:27:39.134754Z
 ---
 
-Pi Banner is now Pi Splash and installs as `pi-splash`. If you installed the old
-package, replace it to avoid loading both extensions:
+Pi Banner is now Pi Splash, a custom startup splash screen for pi with rainbow
+π ASCII art. Install it as `pi-splash`. If you installed the old package, replace
+it to avoid loading both extensions:
 
 ```sh
 pi remove npm:pi-banner
 pi install npm:pi-splash
 ```
 
-The rainbow π header and its behavior are unchanged.
+The splash screen's appearance and behavior are unchanged.

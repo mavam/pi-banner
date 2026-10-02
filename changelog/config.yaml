@@ -1,5 +1,5 @@
 id: pi-splash
 name: Pi Splash
 description: >-
-  A rainbow pi splash extension for pi.
+  A custom startup splash screen for pi with rainbow π ASCII art.
 repository: mavam/pi-splash
