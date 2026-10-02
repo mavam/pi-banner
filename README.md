@@ -142,12 +142,6 @@ they'd thought of it first:
        9644288             10975665933
 ```
 
-## 🧹 Uninstall
-
-```sh
-pi remove npm:pi-splash
-```
-
 ## 🙏 Credits
 
 The 3D logo renderer is adapted from
