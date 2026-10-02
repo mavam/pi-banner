@@ -12,14 +12,6 @@ terminal.
 pi install npm:pi-splash
 ```
 
-If you previously installed `pi-banner`, replace it to avoid loading both
-extensions:
-
-```sh
-pi remove npm:pi-banner
-pi install npm:pi-splash
-```
-
 ## ✨ Usage
 
 - Greets you with a 3D π every time pi starts, a small but non-negotiable
