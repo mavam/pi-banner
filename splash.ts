@@ -60,7 +60,7 @@ function rainbowLine(line: string, rowOffset: number): string {
   return result + RESET;
 }
 
-export function renderBannerLines(width: number): string[] {
+export function renderSplashLines(width: number): string[] {
   const maxLen = Math.max(...PI_ART.map((line) => line.length));
   const pad = Math.max(0, Math.floor((width - maxLen) / 2));
   const prefix = " ".repeat(pad);
@@ -77,7 +77,7 @@ export default function (pi: ExtensionAPI) {
 
     ctx.ui.setHeader(() => ({
       render(width: number): string[] {
-        return renderBannerLines(width);
+        return renderSplashLines(width);
       },
       invalidate() {},
     }));

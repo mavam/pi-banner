@@ -1,7 +1,7 @@
-# pi-banner
+# pi-splash
 
-`pi-banner` is a pi extension that replaces the default header with a rainbow π
-ASCII art banner.
+`pi-splash` is a pi extension that shows a custom splash screen on startup with
+rainbow π ASCII art.
 
 ## Setup
 

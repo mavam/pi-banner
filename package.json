@@ -1,10 +1,10 @@
 {
-  "name": "pi-banner",
+  "name": "pi-splash",
   "version": "0.1.2",
-  "description": "A rainbow pi banner extension for pi",
+  "description": "A custom startup splash screen for pi with rainbow π ASCII art",
   "type": "module",
   "files": [
-    "banner.ts",
+    "splash.ts",
     "README.md",
     "LICENSE"
   ],
@@ -12,14 +12,16 @@
     "pi-package",
     "pi",
     "pi-extension",
-    "banner",
-    "header"
+    "splash",
+    "splash-screen",
+    "startup",
+    "ascii-art"
   ],
   "author": "Matthias Vallentin",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mavam/pi-banner.git"
+    "url": "git+https://github.com/mavam/pi-splash.git"
   },
   "scripts": {
     "test": "node --test --experimental-strip-types *.test.ts"
@@ -29,7 +31,7 @@
   },
   "pi": {
     "extensions": [
-      "./banner.ts"
+      "./splash.ts"
     ]
   }
 }
