@@ -4,6 +4,8 @@ A [Pi](https://pi.dev) extension that greets you with a custom splash screen on
 startup: a slowly turning 3D π in the colors of the pi logo, centered in your
 terminal.
 
+![A 3D π turning in the terminal, recolored and switched to the plain digits with /splash](demo/splash.gif)
+
 ## 🚀 Installation
 
 ```sh
