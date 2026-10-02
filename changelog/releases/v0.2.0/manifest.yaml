@@ -1,0 +1,8 @@
+created: 2026-10-02
+title: 3D splash screen
+intro: "Pi Splash, formerly Pi Banner, now greets you with a slowly turning 3D \u03C0\
+  \ in the pi logo colors, and you tune it live with the new /splash command. The\
+  \ rainbow digits remain available as the plain mode."
+source:
+  mode: sync-stable-queue
+  previous_stable: v0.1.2

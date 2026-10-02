@@ -1,6 +1,6 @@
 {
   "name": "pi-splash",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A custom startup splash screen for pi with rainbow π ASCII art",
   "type": "module",
   "files": [
