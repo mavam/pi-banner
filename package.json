@@ -5,6 +5,10 @@
   "type": "module",
   "files": [
     "splash.ts",
+    "art.ts",
+    "config.ts",
+    "palette.ts",
+    "pi3d.ts",
     "README.md",
     "LICENSE"
   ],
