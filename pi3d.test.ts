@@ -62,8 +62,8 @@ function weakDots(lines: string[]): string[] {
   });
 }
 
-const PLAIN = { ...DEFAULT_SETTINGS, mode: "plain" as const };
-const SOLID = { ...DEFAULT_SETTINGS, mode: "3d" as const };
+const PLAIN = { ...DEFAULT_SETTINGS, symbol: "pi" as const, mode: "plain" as const };
+const SOLID = { ...DEFAULT_SETTINGS, symbol: "pi" as const, mode: "3d" as const };
 const FRONT = { pose: { yaw: 0, pitch: 0 }, scale: 1 };
 
 test("render3dLines uses as many lines as the plain splash screen", () => {

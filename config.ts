@@ -28,7 +28,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: "3d",
-  symbol: "pi",
+  symbol: "logo",
   color: DEFAULT_COLOR,
   random: false,
   size: DEFAULT_SIZE,

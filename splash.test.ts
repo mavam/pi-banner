@@ -107,7 +107,7 @@ test("SplashHeader turns by default", () => {
 });
 
 test("SplashHeader applies the symbol immediately and rotates the logo at the configured speed", () => {
-  const { clock, header, renders } = makeHeader({ speed: 60 });
+  const { clock, header, renders } = makeHeader({ symbol: "pi", speed: 60 });
   const pi = header.render(80);
   const before = renders();
   const settings = { ...DEFAULT_SETTINGS, symbol: "logo" as const, speed: 60 };
@@ -227,7 +227,7 @@ test("SplashHeader shows no hints without pi's formatters", () => {
 });
 
 test("SplashHeader shows hints under the plain digits too", () => {
-  const lines = hintHeader({ mode: "plain" }).header.render(140);
+  const lines = hintHeader({ symbol: "pi", mode: "plain" }).header.render(140);
 
   assert.match(lines.at(-1)!, /commands/);
   assert.match(stripAnsi(lines.join("\n")), /3\.141592653589793/);

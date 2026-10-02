@@ -27,6 +27,10 @@ function dotGrid(lines: string[]): Set<string> {
   return dots;
 }
 
+test("the default splash renders the Pi logo in its original colors", () => {
+  assert.deepEqual(renderLines(DEFAULT_SETTINGS, 80), renderLogo3dLines(80));
+});
+
 test("the plain logo uses Pi's original 4x4 pixel layout and brand colors", () => {
   assert.deepEqual(LOGO_PIXELS, ["ccc.", "b.c.", "bb.y", "b..y"]);
   const lines = renderLines({ ...LOGO, mode: "plain" }, 80);

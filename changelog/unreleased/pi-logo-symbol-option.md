@@ -5,15 +5,17 @@ authors:
   - mavam
 prs:
   - 6
-created: 2026-10-02T19:43:14.226632Z
+created: 2026-10-02T19:47:06.515108Z
 ---
 
-You can now show the Pi pixel logo from its 1.0 Easter egg instead of the mathematical π:
+Pi Splash now greets you with the rotating Pi pixel logo from its 1.0 Easter egg by default, in the original coral, blue, and yellow colors.
+
+The logo works in both the rotating `3d` mode and the flat `plain` mode. Your color, size, thickness, and speed settings still apply.
+
+Choose the mathematical π instead with:
 
 ```text
-/splash symbol logo
+/splash symbol pi
 ```
 
-The logo works in both the rotating 3D mode and the flat `plain` mode. Your color, size, thickness, and speed settings still apply, and the `pi` color preset keeps the logo's original coral, blue, and yellow pixels.
-
-Switch back with `/splash symbol pi`. The choice applies immediately and is saved for future sessions. Existing settings keep the mathematical π by default.
+Use `/splash symbol logo` to return to the logo, or `/splash reset` to restore all defaults. The choice applies immediately and is saved for future sessions. Settings without `symbol` now use the Pi logo; explicitly saved symbol choices stay selected.

@@ -36,8 +36,8 @@ function fails(args: string): string {
   return result.error;
 }
 
-test("the defaults are a slowly turning 3D π in the pi logo colors", () => {
-  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", symbol: "pi", color: "pi", random: false, size: 1, thickness: 8, speed: 10 });
+test("the defaults are a slowly turning 3D Pi logo in its original colors", () => {
+  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", symbol: "logo", color: "pi", random: false, size: 1, thickness: 8, speed: 10 });
 });
 
 test("/splash without arguments describes the settings and changes nothing", () => {
@@ -56,7 +56,7 @@ test("/splash switches the mode, with or without the mode keyword", () => {
 });
 
 test("/splash symbol switches the symbol independently of the mode and tuning", () => {
-  const current = { ...DEFAULT_SETTINGS, mode: "plain" as const, color: "ocean", speed: 6 };
+  const current = { ...DEFAULT_SETTINGS, symbol: "pi" as const, mode: "plain" as const, color: "ocean", speed: 6 };
   const logo = change("symbol logo", current);
 
   assert.deepEqual(logo, { ...current, symbol: "logo" });
@@ -108,7 +108,7 @@ test("/splash rejects missing values and unknown options", () => {
 });
 
 test("/splash reset restores the defaults", () => {
-  const tuned = { ...DEFAULT_SETTINGS, symbol: "logo" as const, mode: "plain" as const, color: "fire", random: true, size: 1.6, thickness: 3, speed: 9 };
+  const tuned = { ...DEFAULT_SETTINGS, symbol: "pi" as const, mode: "plain" as const, color: "fire", random: true, size: 1.6, thickness: 3, speed: 9 };
 
   assert.deepEqual(change("reset", tuned), DEFAULT_SETTINGS);
 });
@@ -254,14 +254,17 @@ test("settings are saved without the defaults and load back", () => {
   assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), {});
 });
 
-test("the selected symbol is saved and old settings keep the mathematical π", () => {
+test("the selected symbol is saved and settings without a symbol use the logo", () => {
   const dir = mkdtempSync(join(tmpdir(), "pi-splash-"));
   const path = join(dir, "splash.json");
-  const logo = { ...DEFAULT_SETTINGS, symbol: "logo" as const };
+  const pi = change("symbol pi");
 
-  saveSettings(logo, path);
-  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { symbol: "logo" });
-  assert.deepEqual(loadSettings(path), { settings: logo });
+  saveSettings(pi, path);
+  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { symbol: "pi" });
+  assert.deepEqual(loadSettings(path), { settings: pi });
+  saveSettings(change("symbol logo", pi), path);
+  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), {});
+  assert.deepEqual(loadSettings(path), { settings: DEFAULT_SETTINGS });
   writeFileSync(path, JSON.stringify({ color: "rainbow", mode: "plain" }));
   assert.deepEqual(loadSettings(path).settings, { ...DEFAULT_SETTINGS, mode: "plain", color: "rainbow" });
   writeFileSync(path, JSON.stringify({ symbol: "mascot" }));

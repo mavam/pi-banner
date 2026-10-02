@@ -1,9 +1,10 @@
 # 🌈 pi-splash
 
 A [Pi](https://pi.dev) extension that greets you with a custom splash screen on
-startup: a slowly turning 3D π or the Pi logo, centered in your terminal.
+startup: a slowly turning 3D Pi logo in its original colors, centered in your
+terminal. Prefer the mathematical π? You can choose that too.
 
-| Mathematical π · `ocean` | Pi logo · original colors |
+| Mathematical π · `ocean` | Pi logo · original colors (default) |
 | :---: | :---: |
 | <img src="demo/splash.gif" width="420" alt="The mathematical π spinning in an ocean gradient"> | <img src="demo/logo.gif" width="420" alt="The Pi logo spinning in its original coral, blue, and yellow"> |
 
@@ -15,7 +16,7 @@ pi install npm:pi-splash
 
 ## ✨ Usage
 
-- Greets you with a 3D π every time pi starts, a small but non-negotiable
+- Greets you with the 3D Pi logo every time pi starts, a small but non-negotiable
   improvement to your day: a lit slab drawn in braille dots that slowly turns
   around
 - Centers the splash screen in the terminal in fullscreen mode
@@ -23,8 +24,8 @@ pi install npm:pi-splash
   specific to pi, in your theme's colors and with your keybindings
 - Can start every session in a different color scheme, if you turn on `random`
   and like a little surprise with your coffee
-- Lets you choose the mathematical π (default) or the pixel Pi logo from its
-  1.0 Easter egg
+- Uses the pixel Pi logo from its 1.0 Easter egg by default, with the
+  mathematical π available as an alternative
 - Switches to the `plain` mode for flat art: the digits of π, laid out as the
   π, or the Pi logo drawn in blocks
 - Restores pi's usual startup screen when you remove or disable the extension,
@@ -39,7 +40,7 @@ saved for the next session.
 | --------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `/splash`                   | Show the current settings                                                                               |
 | `/splash 3d` / `plain`       | Switch between 3D (default) and flat art                                                                 |
-| `/splash symbol pi` / `logo` | Choose the mathematical π (default) or the Pi pixel logo                                                  |
+| `/splash symbol pi` / `logo` | Choose the mathematical π or the Pi pixel logo (default)                                                  |
 | `/splash color <value>`      | Paint the symbol: `pi` (default), `rainbow`, `sunset`, `ocean`, `fire`, `mono`, or hex colors                 |
 | `/splash random on` / `off`  | Start every session with a random color scheme instead of your color (default `off`)                      |
 | `/splash size <n>`           | Size of the 3D symbol, from `0.5` to `2` times the default (default `1`); it shrinks to fit a small terminal |
@@ -47,15 +48,15 @@ saved for the next session.
 | `/splash speed <n>`          | Turns per minute, from `0` to `60`; `0` keeps the symbol still (default `10`)                               |
 | `/splash reset`              | Restore the defaults                                                                                    |
 
-Choose the Pi logo without changing your mode, colors, or rotation settings:
+Choose the mathematical π without changing your mode, colors, or rotation settings:
 
 ```text
-/splash symbol logo
+/splash symbol pi
 ```
 
-In 3D mode, it uses the pixel blocks and lighting from Pi's 1.0 logo Easter egg.
+The 3D logo uses the pixel blocks and lighting from Pi's 1.0 Easter egg.
 It rotates in place; the fullscreen dissolve, sliding puzzle, and starfield stay
-in the Easter egg. Switch back with `/splash symbol pi`.
+in the Easter egg. Switch back to the logo with `/splash symbol logo`.
 
 Colors can be a preset or hex colors. One hex color paints the whole symbol, and
 several blend along its diagonal:
@@ -105,12 +106,14 @@ You can also edit it by hand, and pi picks it up on the next session start:
 ```json
 {
   "mode": "plain",
+  "symbol": "pi",
   "color": "rainbow"
 }
 ```
 
 Set `"symbol": "logo"` to show the Pi logo, or `"symbol": "pi"` for the
-mathematical π. Existing settings without `symbol` keep the mathematical π.
+mathematical π. Settings without `symbol`, including existing files, use the
+Pi logo. An explicitly saved symbol stays selected.
 
 Set `"random": true` to start every session with a random color scheme; `color`
 then only applies when you turn `random` off.
@@ -121,8 +124,8 @@ warning.
 
 ## 👀 Preview
 
-The `plain` mode: ascii art that makes `neofetch` users wish they'd thought of
-it first:
+The mathematical π in `plain` mode: ascii art that makes `neofetch` users wish
+they'd thought of it first:
 
 ```text
        3.141592653589793238462643383279
