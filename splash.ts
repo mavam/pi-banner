@@ -7,6 +7,8 @@ import {
   loadSettings,
   runCommand,
   saveSettings,
+  sessionColor,
+  shownSettings,
   type Settings,
 } from "./config.ts";
 import { compactLines, expandedLines, type Hints } from "./instructions.ts";
@@ -199,26 +201,29 @@ function piHints(
 }
 
 export default function (pi: ExtensionAPI) {
+  // The saved settings. The session may show a random color instead of the saved one.
   let settings: Settings = { ...DEFAULT_SETTINGS };
+  let shown: string | undefined;
   let header: SplashHeader | undefined;
   // Like pi's own header, the key hints follow `quietStartup` as of the session start.
   let quiet = false;
 
   pi.registerCommand("splash", {
-    description: "Tune the splash screen: mode, color, thickness, and rotation speed",
+    description: "Tune the splash screen: mode, color, random color, thickness, and rotation speed",
     getArgumentCompletions: (argument) => {
       const items = completions(argument);
       return items.length > 0 ? items : null;
     },
     handler: async (args, ctx) => {
-      const result = runCommand(args, settings);
+      const result = runCommand(args, settings, shown);
       if ("error" in result) {
         ctx.ui.notify(result.error, "error");
         return;
       }
       if ("settings" in result) {
         settings = result.settings;
-        header?.update(settings);
+        shown = result.shown;
+        header?.update(shownSettings(settings, shown));
         try {
           saveSettings(settings);
         } catch (error) {
@@ -235,6 +240,7 @@ export default function (pi: ExtensionAPI) {
     const loaded = loadSettings();
     settings = loaded.settings;
     if (loaded.warning) ctx.ui.notify(loaded.warning, "warning");
+    shown = sessionColor(settings, "start");
     try {
       quiet = pi.getSettings().quietStartup === true;
     } catch {
@@ -248,7 +254,7 @@ export default function (pi: ExtensionAPI) {
       // Fullscreen mode has a fixed viewport to center in. Regular mode leaves
       // the layout to the terminal's scrollback, where padding would only waste rows.
       const viewportRows = () => (tui.mode === "fullscreen" ? tui.terminal.rows - DOCK_ROWS : 0);
-      const own = new SplashHeader(() => tui.requestRender(), settings, {
+      const own = new SplashHeader(() => tui.requestRender(), shownSettings(settings, shown), {
         viewportRows,
         hints: piHints(piModule, theme),
         quiet: () => quiet,

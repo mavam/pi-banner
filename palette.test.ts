@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DEFAULT_COLOR, DEFAULT_PALETTE, PALETTE_NAMES, hslToRgb, parsePalette, rgbToHsl, shade } from "./palette.ts";
+import { DEFAULT_COLOR, DEFAULT_PALETTE, PALETTE_NAMES, hslToRgb, parsePalette, randomPreset, rgbToHsl, shade } from "./palette.ts";
 
 test("parsePalette knows every preset", () => {
   for (const name of PALETTE_NAMES) assert.ok(parsePalette(name), name);
@@ -10,6 +10,14 @@ test("parsePalette knows every preset", () => {
 test("the default palette is the default color", () => {
   assert.equal(DEFAULT_COLOR, "pi");
   assert.equal(parsePalette(DEFAULT_COLOR), DEFAULT_PALETTE);
+});
+
+test("randomPreset can pick every preset and nothing else", () => {
+  const picks = PALETTE_NAMES.map((_, index) => randomPreset(() => index / PALETTE_NAMES.length));
+
+  assert.deepEqual(picks, [...PALETTE_NAMES]);
+  assert.equal(randomPreset(() => 0.999999), PALETTE_NAMES.at(-1));
+  assert.ok(PALETTE_NAMES.includes(randomPreset()));
 });
 
 test("parsePalette is case and space insensitive", () => {
