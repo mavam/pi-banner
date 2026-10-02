@@ -131,6 +131,18 @@ test("SplashHeader pads the top to center in the viewport", () => {
   assert.ok(Math.abs(padding - (38 - centered.length)) <= 1);
 });
 
+test("SplashHeader keeps a large size within the viewport", () => {
+  const clock = { now: () => 0 };
+  const settings = { ...DEFAULT_SETTINGS, size: 2, speed: 0 };
+  const tight = new SplashHeader(() => {}, settings, clock, () => 18).render(100);
+  const roomy = new SplashHeader(() => {}, settings, clock, () => 60).render(100);
+  const regular = new SplashHeader(() => {}, settings, clock).render(100);
+
+  assert.equal(tight.length, 18); // shrunk to the viewport, nothing left to pad
+  assert.equal(roomy.length, 28 + topPadding(28, 60)); // the full size, centered
+  assert.equal(regular.length, 28); // regular mode has no viewport to respect
+});
+
 test("SplashHeader pads the 3D slab too, and re-reads the viewport on every render", () => {
   const clock = { now: () => 0 };
   let rows = 0;

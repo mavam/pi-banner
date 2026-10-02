@@ -28,7 +28,7 @@ function fails(args: string): string {
 }
 
 test("the defaults are a slowly turning 3D π in the pi logo colors", () => {
-  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", thickness: 8, speed: 10 });
+  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", size: 1, thickness: 8, speed: 10 });
 });
 
 test("/splash without arguments describes the settings and changes nothing", () => {
@@ -53,6 +53,16 @@ test("/splash color accepts presets and hex colors", () => {
   assert.match(fails("color nope"), /color must be/);
 });
 
+test("/splash size is a multiple of the default size within a range", () => {
+  assert.equal(change("size 1.5").size, 1.5);
+  assert.equal(change("size 0.5").size, 0.5);
+  assert.equal(change("size 2").size, 2);
+  assert.match(fails("size 0.4"), /size must be between 0.5 and 2/);
+  assert.match(fails("size 2.1"), /size must be between 0.5 and 2/);
+  assert.match(fails("size large"), /size must be/);
+  assert.match(fails("size"), /Missing value for size/);
+});
+
 test("/splash thickness is limited to a sensible range", () => {
   assert.equal(change("thickness 12").thickness, 12);
   assert.equal(change("thickness 0.5").thickness, 0.5);
@@ -75,7 +85,7 @@ test("/splash rejects missing values and unknown options", () => {
 });
 
 test("/splash reset restores the defaults", () => {
-  const tuned = { mode: "3d" as const, color: "fire", thickness: 3, speed: 9 };
+  const tuned = { mode: "plain" as const, color: "fire", size: 1.6, thickness: 3, speed: 9 };
 
   assert.deepEqual(change("reset", tuned), DEFAULT_SETTINGS);
 });
@@ -90,9 +100,11 @@ test("/splash never mutates the current settings", () => {
 test("completions cover options and values", () => {
   assert.deepEqual(
     completions("").map((item) => item.label),
-    ["plain", "3d", "color", "thickness", "speed", "reset"],
+    ["plain", "3d", "color", "size", "thickness", "speed", "reset"],
   );
   assert.deepEqual(completions("th"), [{ value: "thickness", label: "thickness" }]);
+  assert.deepEqual(completions("si"), [{ value: "size", label: "size" }]);
+  assert.ok(completions("size ").some((item) => item.value === "size 1"));
   assert.deepEqual(completions("color su"), [{ value: "color sunset", label: "sunset" }]);
   assert.ok(completions("speed ").some((item) => item.value === "speed 0"));
   assert.deepEqual(completions("reset "), []);
@@ -104,6 +116,8 @@ test("parseSettings fills in defaults and validates strictly", () => {
   assert.equal(typeof parseSettings({ sparkle: true }), "string");
   assert.match(parseSettings({ sparkle: true }) as string, /unknown setting "sparkle"/);
   assert.match(parseSettings({ speed: "6" }) as string, /speed must be/);
+  assert.match(parseSettings({ size: 3 }) as string, /size must be between 0.5 and 2/);
+  assert.deepEqual(parseSettings({ size: 1.5 }), { ...DEFAULT_SETTINGS, size: 1.5 });
   assert.match(parseSettings({ mode: "4d" }) as string, /mode must be/);
   assert.match(parseSettings({ color: "nope" }) as string, /color must be/);
   assert.equal(parseSettings([]), "expected an object");

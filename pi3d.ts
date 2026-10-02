@@ -21,13 +21,21 @@ export interface Options {
   pose?: Pose;
   /** Slab thickness in block widths. */
   thickness?: number;
-  /** Uniform scale around the center of the art; by default the largest that fits the splash screen's rows at any yaw. */
+  /**
+   * How large the splash screen is, as a multiple of its default size: it
+   * scales the rows and columns the π may use. Terminals clamp it.
+   */
+  size?: number;
+  /** The most rows to use, for terminals shorter than the size asks for; 0 or none for no limit. */
+  maxRows?: number;
+  /** Uniform scale around the center of the art; by default the largest that fits the canvas at any yaw. */
   scale?: number;
   palette?: Palette;
 }
 
 export const DEFAULT_POSE: Pose = { yaw: -0.35, pitch: 0.2 };
 export const DEFAULT_THICKNESS = 8;
+export const DEFAULT_SIZE = 1;
 
 /** Rows above and below the art, matching the plain splash screen. */
 const MARGIN_ROWS = 1;
@@ -36,6 +44,10 @@ const CELL_HEIGHT = 4;
 const CAMERA_DISTANCE = 400;
 /** Extra columns on each side of the art for the rotated slab to reach into. */
 const MARGIN_COLUMNS = 8;
+/** The fewest rows to draw in, however small the size or the terminal. */
+const MIN_LINES = 5;
+/** Keeps the scale positive when the canvas is almost empty. */
+const MIN_SCALE = 0.05;
 const LIGHT = normalize([-0.45, -0.6, 0.66]);
 const RESET = "\x1b[0m";
 /** Axis and sign of the six faces: -x, +x, -y, +y, -z, +z. */
@@ -132,17 +144,16 @@ function trace(origin: Vec3, direction: Vec3, halfDepth: number): Hit | undefine
 }
 
 /**
- * The largest scale at which the slab stays inside the splash screen's rows and
- * columns for every yaw at the given pitch, found by projecting its corners.
+ * The largest scale, up to `cap`, at which the slab stays within `halfRows` and
+ * `halfColumns` dots of the canvas center for every yaw at the given pitch,
+ * found by projecting its corners.
  */
 const fits = new Map<string, number>();
-function fitScale(depth: number, pitch: number): number {
-  const key = `${depth}|${pitch}`;
+function fitScale(depth: number, pitch: number, halfRows: number, halfColumns: number, cap: number): number {
+  const key = `${depth}|${pitch}|${halfRows}|${halfColumns}|${cap}`;
   const known = fits.get(key);
   if (known !== undefined) return known;
 
-  const rows = (ROWS + MARGIN_ROWS * 2) * CELL_HEIGHT;
-  const columns = (COLUMNS + MARGIN_COLUMNS * 2) * CELL_WIDTH;
   const [cp, sp] = [Math.cos(pitch), Math.sin(pitch)];
   let reachX = 0;
   let reachY = 0;
@@ -162,28 +173,42 @@ function fitScale(depth: number, pitch: number): number {
     }
   }
   // Two dots of breathing room.
-  const scale = Math.min(1, (rows / 2 - 2) / reachY, (columns / 2 - 2) / reachX);
+  const scale = Math.max(MIN_SCALE, Math.min(cap, (halfRows - 2) / reachY, (halfColumns - 2) / reachX));
   fits.set(key, scale);
   return scale;
 }
 
 /** The splash screen's rows: blank, the art, blank; each a braille line with 24-bit color. */
 export function render3dLines(width: number, options: Options = {}): string[] {
-  const { pose = DEFAULT_POSE, thickness = DEFAULT_THICKNESS, palette = DEFAULT_PALETTE } = options;
+  const {
+    pose = DEFAULT_POSE,
+    thickness = DEFAULT_THICKNESS,
+    size = DEFAULT_SIZE,
+    maxRows = 0,
+    palette = DEFAULT_PALETTE,
+  } = options;
   const depth = thickness * CELL_WIDTH;
-  const scale = options.scale ?? fitScale(depth, pose.pitch);
-  const lines = ROWS + MARGIN_ROWS * 2;
-  const pad = Math.max(0, Math.floor((width - COLUMNS) / 2));
-  const left = Math.max(0, pad - MARGIN_COLUMNS);
-  const right = Math.min(width, pad + COLUMNS + MARGIN_COLUMNS);
+
+  // The canvas is the default one scaled by the size, as far as the terminal allows.
+  const defaultLines = ROWS + MARGIN_ROWS * 2;
+  const wantedLines = Math.max(MIN_LINES, Math.round(defaultLines * size));
+  const lines = maxRows > 0 ? Math.max(MIN_LINES, Math.min(wantedLines, maxRows)) : wantedLines;
+  const grown = lines / defaultLines;
+  const artCenter = Math.floor((width - COLUMNS) / 2) + COLUMNS / 2;
+  const wantedCells = Math.round((COLUMNS + MARGIN_COLUMNS * 2) * grown);
+  const left = Math.max(0, Math.min(Math.round(artCenter - wantedCells / 2), width - wantedCells));
+  const right = Math.min(width, left + wantedCells);
   const cells = Math.max(0, right - left);
   const dotWidth = cells * CELL_WIDTH;
   const dotHeight = lines * CELL_HEIGHT;
   if (cells === 0) return Array.from({ length: lines }, () => "");
 
   // The art's center on the dot canvas.
-  const centerX = (pad - left) * CELL_WIDTH + HALF_WIDTH;
-  const centerY = MARGIN_ROWS * CELL_HEIGHT + HALF_HEIGHT;
+  const centerX = (artCenter - left) * CELL_WIDTH;
+  const centerY = dotHeight / 2;
+  const scale =
+    options.scale ??
+    fitScale(depth, pose.pitch, dotHeight / 2, Math.min(centerX, dotWidth - centerX), grown);
 
   const m = rotation(pose);
   const halfDepth = depth / 2;

@@ -170,6 +170,62 @@ test("render3dLines keeps every thickness and yaw inside the splash screen rows"
   }
 });
 
+test("render3dLines size scales the rows, and size 1 is the default look", () => {
+  assert.deepEqual(render3dLines(100, { size: 1 }), render3dLines(100));
+  assert.equal(render3dLines(100, { size: 0.5 }).length, 7);
+  assert.equal(render3dLines(100, { size: 1 }).length, 14);
+  assert.equal(render3dLines(100, { size: 2 }).length, 28);
+  assert.equal(render3dLines(100, { size: 1.5 }).length, 21);
+});
+
+test("render3dLines draws more of the π the larger the size", () => {
+  const amount = (size: number) => dots(render3dLines(120, { size, pose: DEFAULT_POSE }));
+
+  assert.ok(amount(0.6) < amount(1), `${amount(0.6)} vs ${amount(1)}`);
+  assert.ok(amount(1) < amount(1.5), `${amount(1)} vs ${amount(1.5)}`);
+  assert.ok(amount(1.5) < amount(2), `${amount(1.5)} vs ${amount(2)}`);
+});
+
+test("render3dLines keeps every size inside the terminal and the canvas", () => {
+  for (const width of [30, 60, 100, 160]) {
+    for (const size of [0.5, 1, 2]) {
+      for (let step = 0; step < 24; step++) {
+        const yaw = (step / 24) * Math.PI * 2;
+        const lines = render3dLines(width, { size, pose: { yaw, pitch: DEFAULT_POSE.pitch }, thickness: 12 });
+        const where = `width ${width}, size ${size}, yaw ${yaw}`;
+        for (const line of lines) assert.ok([...stripAnsi(line)].length <= width, where);
+        // Dots on the outermost row or column would mean the slab was cut off.
+        for (const key of dotGrid(lines)) {
+          const [x, y] = key.split(",").map(Number) as [number, number];
+          assert.ok(y >= 1 && y <= lines.length * 4 - 2, `${where}: dot row ${y}`);
+          assert.ok(x >= 1 && x <= width * 2 - 2, `${where}: dot column ${x}`);
+        }
+      }
+    }
+  }
+});
+
+test("render3dLines shrinks to the rows it is given", () => {
+  assert.equal(render3dLines(100, { size: 2, maxRows: 10 }).length, 10);
+  assert.equal(render3dLines(100, { size: 1, maxRows: 40 }).length, 14);
+  assert.equal(render3dLines(100, { size: 2, maxRows: 0 }).length, 28);
+  assert.equal(render3dLines(100, { size: 1, maxRows: 2 }).length, 5);
+  // The π is scaled down to fit the shorter canvas rather than cut off.
+  const lines = render3dLines(100, { size: 2, maxRows: 10, pose: DEFAULT_POSE });
+  for (const key of dotGrid(lines)) {
+    const y = Number(key.split(",")[1]);
+    assert.ok(y >= 1 && y <= 10 * 4 - 2, `dot row ${y}`);
+  }
+});
+
+test("render3dLines leaves no stray dots at any size", () => {
+  for (const size of [0.5, 0.8, 1.3, 2]) {
+    for (const width of [60, 61, 100]) {
+      assert.deepEqual(weakDots(render3dLines(width, { size })), [], `size ${size} at ${width}`);
+    }
+  }
+});
+
 test("render3dLines leaves no stray dots at any thickness", () => {
   for (const thickness of [0.5, 2, 20]) {
     for (const width of [50, 51, 80, 81]) {
@@ -196,6 +252,14 @@ test("renderLines passes thickness and palette through to the 3D slab", () => {
 
   assert.ok(dots([thick]) > dots([thin]));
   assert.notEqual(mono, renderLines(base, 80).join(""));
+});
+
+test("renderLines passes size and the row limit through, and plain ignores them", () => {
+  const big = renderLines({ ...SOLID, size: 2 }, 100);
+
+  assert.equal(big.length, 28);
+  assert.equal(renderLines({ ...SOLID, size: 2 }, 100, 0, 12).length, 12);
+  assert.deepEqual(renderLines({ ...PLAIN, size: 2 }, 100, 0, 12), renderLines(PLAIN, 100));
 });
 
 test("renderLines paints the plain splash screen with the palette", () => {

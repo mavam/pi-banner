@@ -49,12 +49,17 @@ export function renderSplashLines(width: number, palette: Palette = DEFAULT_PALE
   ];
 }
 
-/** The splash screen for the settings, with the 3D slab turned by `angle` radians. */
-export function renderLines(settings: Settings, width: number, angle = 0): string[] {
+/**
+ * The splash screen for the settings, with the 3D slab turned by `angle`
+ * radians and kept within `maxRows` rows (0 for no limit).
+ */
+export function renderLines(settings: Settings, width: number, angle = 0, maxRows = 0): string[] {
   const palette = parsePalette(settings.color) ?? DEFAULT_PALETTE;
   if (settings.mode === "plain") return renderSplashLines(width, palette);
   return render3dLines(width, {
     pose: { yaw: DEFAULT_POSE.yaw + angle, pitch: DEFAULT_POSE.pitch },
+    size: settings.size,
+    maxRows,
     thickness: settings.thickness,
     palette,
   });
@@ -117,8 +122,9 @@ export class SplashHeader {
       this.angle = (this.angle + turns * TURN) % TURN;
     }
     this.last = now;
-    const lines = renderLines(this.settings, width, this.angle);
-    const padding = topPadding(lines.length, this.viewportRows());
+    const viewportRows = this.viewportRows();
+    const lines = renderLines(this.settings, width, this.angle, viewportRows);
+    const padding = topPadding(lines.length, viewportRows);
     return padding === 0 ? lines : [...Array.from({ length: padding }, () => ""), ...lines];
   }
 

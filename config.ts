@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { COLOR_HELP, DEFAULT_COLOR, PALETTE_NAMES, parsePalette } from "./palette.ts";
-import { DEFAULT_THICKNESS } from "./pi3d.ts";
+import { DEFAULT_SIZE, DEFAULT_THICKNESS } from "./pi3d.ts";
 
 export const MODES = ["plain", "3d"] as const;
 export type Mode = (typeof MODES)[number];
@@ -13,6 +13,8 @@ export interface Settings {
   mode: Mode;
   /** A palette name, or hex colors; see `parsePalette`. */
   color: string;
+  /** How large the 3D slab is, as a multiple of the default size. */
+  size: number;
   /** Depth of the 3D slab in block widths. */
   thickness: number;
   /** Rotation in turns per minute; 0 keeps the slab still. */
@@ -22,10 +24,12 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   mode: "3d",
   color: DEFAULT_COLOR,
+  size: DEFAULT_SIZE,
   thickness: DEFAULT_THICKNESS,
   speed: 10,
 };
 
+export const SIZE_RANGE = [0.5, 2] as const;
 export const THICKNESS_RANGE = [0.5, 20] as const;
 export const SPEED_RANGE = [0, 60] as const;
 export const CONFIG_FILE = "splash.json";
@@ -41,6 +45,10 @@ function problem(key: keyof Settings, value: unknown): string | undefined {
       return typeof value === "string" && parsePalette(value)
         ? undefined
         : `color must be ${COLOR_HELP}`;
+    case "size":
+      return inRange(value, SIZE_RANGE)
+        ? undefined
+        : `size must be between ${SIZE_RANGE[0]} and ${SIZE_RANGE[1]}`;
     case "thickness":
       return inRange(value, THICKNESS_RANGE)
         ? undefined
@@ -76,15 +84,16 @@ export function parseSettings(value: unknown): Settings | string {
 }
 
 export function describeSettings(settings: Settings): string {
-  const { mode, color, thickness, speed } = settings;
+  const { mode, color, size, thickness, speed } = settings;
   return mode === "plain"
     ? `mode plain, color ${color}`
-    : `mode 3d, color ${color}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}`;
+    : `mode 3d, color ${color}, size ${size}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}`;
 }
 
 const USAGE = [
   "/splash [plain|3d]       switch the mode",
   `/splash color <value>    ${COLOR_HELP}`,
+  `/splash size <n>         ${SIZE_RANGE[0]}-${SIZE_RANGE[1]} times the default size, 1 is the default`,
   `/splash thickness <n>    ${THICKNESS_RANGE[0]}-${THICKNESS_RANGE[1]} block widths`,
   `/splash speed <n>        ${SPEED_RANGE[0]}-${SPEED_RANGE[1]} turns per minute, 0 keeps the π still`,
   "/splash reset            restore the defaults",
@@ -113,7 +122,7 @@ export function runCommand(args: string, current: Settings): CommandResult {
   if (text === "") return { error: `Missing value for ${key}` };
 
   const setting = key as keyof Settings;
-  const parsed = setting === "thickness" || setting === "speed" ? Number(text) : text;
+  const parsed = setting === "size" || setting === "thickness" || setting === "speed" ? Number(text) : text;
   const reason = problem(setting, parsed);
   if (reason) return { error: reason };
 
@@ -130,12 +139,13 @@ export function completions(argument: string): { value: string; label: string }[
       .filter((name) => name.startsWith(prefix))
       .map((name) => ({ value: head + name, label: name }));
 
-  if (space === -1) return pick([...MODES, "color", "thickness", "speed", "reset"], text);
+  if (space === -1) return pick([...MODES, "color", "size", "thickness", "speed", "reset"], text);
   const key = text.slice(0, space);
   const prefix = text.slice(space + 1);
   const head = `${key} `;
   if (key === "color") return pick(PALETTE_NAMES, prefix, head);
   if (key === "mode") return pick(MODES, prefix, head);
+  if (key === "size") return pick(["0.6", "0.8", "1", "1.4", "2"], prefix, head);
   if (key === "thickness") return pick(["2", "4", "7", "10", "14"], prefix, head);
   if (key === "speed") return pick(["0", "3", "6", "12", "24"], prefix, head);
   return [];

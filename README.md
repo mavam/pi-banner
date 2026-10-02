@@ -39,6 +39,7 @@ saved for the next session.
 | `/splash`               | Show the current settings                                                      |
 | `/splash 3d` / `plain`  | Switch between the 3D slab (default) and the digits of π                       |
 | `/splash color <value>` | Paint the π: `pi` (default), `rainbow`, `sunset`, `ocean`, `fire`, `mono`, or hex colors |
+| `/splash size <n>`      | Size of the 3D π, from `0.5` to `2` times the default (default `1`); it shrinks to fit a small terminal |
 | `/splash thickness <n>` | Depth of the 3D slab, from `0.5` to `20` block widths (default `8`)            |
 | `/splash speed <n>`     | Turns per minute, from `0` to `60`; `0` keeps the π still (default `10`)       |
 | `/splash reset`         | Restore the defaults                                                           |
@@ -51,8 +52,8 @@ several blend along its diagonal:
 /splash color #ff0000,#00ffff
 ```
 
-The `pi` preset uses the colors of the pi logo. Thickness and speed only
-affect the 3D mode; color applies to both modes.
+The `pi` preset uses the colors of the pi logo. Size, thickness, and speed
+only affect the 3D mode; color applies to both modes.
 
 To get the original rainbow digits:
 
