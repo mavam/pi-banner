@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Regenerates demo/splash.gif from demo/splash.tape and compresses it.
+# Regenerates demo/splash.gif from demo/splash.tape: one rotation of the
+# default splash screen that loops without a jump.
 #
-# Needs nix, which provides vhs and gifsicle, and ffmpeg on the PATH.
+# Needs nix, which provides vhs and gifsicle, plus ffmpeg and node on the PATH.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -13,13 +14,13 @@ DEMO=$(cd "$(mktemp -d)" && pwd -P)
 export DEMO
 trap 'rm -rf "$work" "$DEMO"' EXIT
 
-# Record the real pi session; the tape sets up a throwaway HOME for it.
+# Record the real pi session: a bit more than one rotation.
 $nix run nixpkgs#vhs -- demo/splash.tape
 
+# Keep exactly one rotation, so that the GIF loops without a jump.
+node --experimental-strip-types demo/loop.ts demo/splash.gif "$work/loop.gif"
+
 # The π changes on every frame, so frame rate and palette decide the size.
-ffmpeg -y -v error -i demo/splash.gif \
-  -vf "fps=15,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" \
-  "$work/resampled.gif"
-$nix run nixpkgs#gifsicle -- -O3 --lossy=120 --colors 64 "$work/resampled.gif" -o demo/splash.gif
+$nix run nixpkgs#gifsicle -- -O3 --lossy=120 --colors 64 "$work/loop.gif" -o demo/splash.gif
 
 ls -lh demo/splash.gif

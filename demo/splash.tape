@@ -1,16 +1,20 @@
-# The README demo. Run `demo/record.sh` from anywhere to regenerate and compress
-# demo/splash.gif; it sets DEMO to a throwaway directory and removes it afterwards.
+# The README demo: one rotation of the default splash screen. Run `demo/record.sh`
+# from anywhere to regenerate and compress demo/splash.gif; it sets DEMO to a
+# throwaway directory and removes it afterwards.
 #
 # pi runs with DEMO as its HOME and a dummy API key, so the recording shows
 # neither personal skills, paths, nor a provider. Nothing is ever sent to it.
+#
+# The recording runs a little longer than one rotation. demo/loop.ts then cuts
+# exactly one rotation out of it, so the GIF loops without a jump.
 
 Output demo/splash.gif
 
 Set Shell "bash"
 Set FontFamily "FiraCode Nerd Font Mono"
 Set FontSize 14
-Set Width 720
-Set Height 540
+Set Width 700
+Set Height 440
 Set Padding 12
 Set Framerate 15
 Set TypingSpeed 50ms
@@ -27,17 +31,4 @@ Show
 Type "pi"
 Enter
 Wait+Screen@20s /commands/
-Sleep 4s
-
-# The trailing space closes pi's completion menu, so Enter submits the command.
-Type "/splash color sunset "
-Enter
-Sleep 2500ms
-
-Type "/splash plain "
-Enter
-Sleep 2s
-
-Type "/splash 3d "
-Enter
-Sleep 2500ms
+Sleep 10s
