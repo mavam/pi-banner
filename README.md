@@ -147,7 +147,3 @@ they'd thought of it first:
 The 3D logo renderer is adapted from
 [Pi's 1.0 logo Easter egg](https://github.com/earendil-works/pi/blob/v1.0.0/packages/coding-agent/src/modes/interactive/components/pi-logo-animation.ts),
 implemented by [Armin Ronacher (@mitsuhiko)](https://github.com/mitsuhiko).
-
-## 📄 License
-
-[MIT](LICENSE)
