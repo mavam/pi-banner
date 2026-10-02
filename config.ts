@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
+import { SYMBOLS, type SplashSymbol } from "./art.ts";
 import { COLOR_HELP, DEFAULT_COLOR, PALETTE_NAMES, parsePalette, randomPreset } from "./palette.ts";
 import { DEFAULT_SIZE, DEFAULT_THICKNESS } from "./pi3d.ts";
 
@@ -9,15 +10,17 @@ export const MODES = ["plain", "3d"] as const;
 export type Mode = (typeof MODES)[number];
 
 export interface Settings {
-  /** `plain` is the digits of π, `3d` the extruded slab. */
+  /** `plain` is flat art, `3d` the rotating solid. */
   mode: Mode;
+  /** The mathematical π or Pi's pixel logo. */
+  symbol: SplashSymbol;
   /** A palette name, or hex colors; see `parsePalette`. */
   color: string;
   /** Start every session with a random preset instead of `color`. */
   random: boolean;
   /** How large the 3D slab is, as a multiple of the default size. */
   size: number;
-  /** Depth of the 3D slab in block widths. */
+  /** Depth setting: block widths for π; 8 keeps the logo's original proportions. */
   thickness: number;
   /** Rotation in turns per minute; 0 keeps the slab still. */
   speed: number;
@@ -25,6 +28,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: "3d",
+  symbol: "logo",
   color: DEFAULT_COLOR,
   random: false,
   size: DEFAULT_SIZE,
@@ -44,6 +48,8 @@ function problem(key: keyof Settings, value: unknown): string | undefined {
   switch (key) {
     case "mode":
       return MODES.includes(value as Mode) ? undefined : `mode must be one of ${MODES.join(", ")}`;
+    case "symbol":
+      return SYMBOLS.includes(value as SplashSymbol) ? undefined : `symbol must be one of ${SYMBOLS.join(", ")}`;
     case "color":
       return typeof value === "string" && parsePalette(value)
         ? undefined
@@ -93,11 +99,11 @@ export function parseSettings(value: unknown): Settings | string {
  * session shows instead of the saved one, if any.
  */
 export function describeSettings(settings: Settings, shown?: string): string {
-  const { mode, color, random, size, thickness, speed } = settings;
+  const { mode, symbol, color, random, size, thickness, speed } = settings;
   const paint = shown ? `color ${shown} (random)` : `color ${color}${random ? ", random on" : ""}`;
   return mode === "plain"
-    ? `mode plain, ${paint}`
-    : `mode 3d, ${paint}, size ${size}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}`;
+    ? `mode plain, symbol ${symbol}, ${paint}`
+    : `mode 3d, symbol ${symbol}, ${paint}, size ${size}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}`;
 }
 
 /** The settings as the session shows them: with its random color, if it has one. */
@@ -127,11 +133,12 @@ export function sessionColor(
 
 const USAGE = [
   "/splash [plain|3d]       switch the mode",
+  "/splash symbol pi|logo   choose the mathematical π or the Pi logo",
   `/splash color <value>    ${COLOR_HELP}`,
   "/splash random on|off   start every session with a random color scheme",
   `/splash size <n>         ${SIZE_RANGE[0]}-${SIZE_RANGE[1]} times the default size, 1 is the default`,
-  `/splash thickness <n>    ${THICKNESS_RANGE[0]}-${THICKNESS_RANGE[1]} block widths`,
-  `/splash speed <n>        ${SPEED_RANGE[0]}-${SPEED_RANGE[1]} turns per minute, 0 keeps the π still`,
+  `/splash thickness <n>    ${THICKNESS_RANGE[0]}-${THICKNESS_RANGE[1]} depth, 8 is the default`,
+  `/splash speed <n>        ${SPEED_RANGE[0]}-${SPEED_RANGE[1]} turns per minute, 0 keeps the symbol still`,
   "/splash reset            restore the defaults",
 ].join("\n");
 
@@ -204,12 +211,13 @@ export function completions(argument: string): { value: string; label: string }[
       .filter((name) => name.startsWith(prefix))
       .map((name) => ({ value: head + name, label: name }));
 
-  if (space === -1) return pick([...MODES, "color", "random", "size", "thickness", "speed", "reset"], text);
+  if (space === -1) return pick([...MODES, "symbol", "color", "random", "size", "thickness", "speed", "reset"], text);
   const key = text.slice(0, space);
   const prefix = text.slice(space + 1);
   const head = `${key} `;
   if (key === "color") return pick(PALETTE_NAMES, prefix, head);
   if (key === "mode") return pick(MODES, prefix, head);
+  if (key === "symbol") return pick(SYMBOLS, prefix, head);
   if (key === "random") return pick(["on", "off"], prefix, head);
   if (key === "size") return pick(["0.6", "0.8", "1", "1.4", "2"], prefix, head);
   if (key === "thickness") return pick(["2", "4", "7", "10", "14"], prefix, head);

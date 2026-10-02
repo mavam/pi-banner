@@ -36,8 +36,8 @@ function fails(args: string): string {
   return result.error;
 }
 
-test("the defaults are a slowly turning 3D π in the pi logo colors", () => {
-  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", random: false, size: 1, thickness: 8, speed: 10 });
+test("the defaults are a slowly turning 3D Pi logo in its original colors", () => {
+  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", symbol: "logo", color: "pi", random: false, size: 1, thickness: 8, speed: 10 });
 });
 
 test("/splash without arguments describes the settings and changes nothing", () => {
@@ -53,6 +53,20 @@ test("/splash switches the mode, with or without the mode keyword", () => {
   assert.equal(change("mode 3d").mode, "3d");
   assert.equal(change("plain").mode, "plain");
   assert.equal(change("3d", { ...DEFAULT_SETTINGS, mode: "plain" }).mode, "3d");
+});
+
+test("/splash symbol switches the symbol independently of the mode and tuning", () => {
+  const current = { ...DEFAULT_SETTINGS, symbol: "pi" as const, mode: "plain" as const, color: "ocean", speed: 6 };
+  const logo = change("symbol logo", current);
+
+  assert.deepEqual(logo, { ...current, symbol: "logo" });
+  assert.deepEqual(change("symbol pi", logo), current);
+  assert.match(fails("symbol mascot"), /symbol must be one of pi, logo/);
+  assert.match(fails("symbol"), /Missing value for symbol/);
+  const result = runCommand("", logo);
+  assert.ok("message" in result);
+  assert.match(result.message, /mode plain, symbol logo/);
+  assert.match(result.message, /\/splash symbol pi\|logo/);
 });
 
 test("/splash color accepts presets and hex colors", () => {
@@ -94,7 +108,7 @@ test("/splash rejects missing values and unknown options", () => {
 });
 
 test("/splash reset restores the defaults", () => {
-  const tuned = { mode: "plain" as const, color: "fire", random: true, size: 1.6, thickness: 3, speed: 9 };
+  const tuned = { ...DEFAULT_SETTINGS, symbol: "pi" as const, mode: "plain" as const, color: "fire", random: true, size: 1.6, thickness: 3, speed: 9 };
 
   assert.deepEqual(change("reset", tuned), DEFAULT_SETTINGS);
 });
@@ -143,6 +157,7 @@ test("choosing a color or resetting ends the random pick, other changes keep it"
   assert.equal(session("size 1.5", on, "fire").shown, "fire");
   assert.match(session("speed 6", on, "fire").message, /color fire \(random\)/);
   assert.equal(session("plain", on, "fire").shown, "fire");
+  assert.equal(session("symbol logo", on, "fire").shown, "fire");
 });
 
 test("/splash shows the random pick and changes nothing", () => {
@@ -173,7 +188,7 @@ test("the settings as shown carry the random color without changing the saved on
 test("completions cover options and values", () => {
   assert.deepEqual(
     completions("").map((item) => item.label),
-    ["plain", "3d", "color", "random", "size", "thickness", "speed", "reset"],
+    ["plain", "3d", "symbol", "color", "random", "size", "thickness", "speed", "reset"],
   );
   assert.deepEqual(completions("th"), [{ value: "thickness", label: "thickness" }]);
   assert.deepEqual(completions("si"), [{ value: "size", label: "size" }]);
@@ -185,6 +200,8 @@ test("completions cover options and values", () => {
     completions("random ").map((item) => item.value),
     ["random on", "random off"],
   );
+  assert.deepEqual(completions("symbol ").map((item) => item.value), ["symbol pi", "symbol logo"]);
+  assert.deepEqual(completions("symbol lo"), [{ value: "symbol logo", label: "logo" }]);
   assert.deepEqual(completions("reset "), []);
 });
 
@@ -199,6 +216,10 @@ test("parseSettings fills in defaults and validates strictly", () => {
   assert.match(parseSettings({ size: 3 }) as string, /size must be between 0.5 and 2/);
   assert.deepEqual(parseSettings({ size: 1.5 }), { ...DEFAULT_SETTINGS, size: 1.5 });
   assert.match(parseSettings({ mode: "4d" }) as string, /mode must be/);
+  assert.deepEqual(parseSettings({ symbol: "logo" }), { ...DEFAULT_SETTINGS, symbol: "logo" });
+  for (const symbol of ["mascot", null, true, 1]) {
+    assert.match(parseSettings({ symbol }) as string, /symbol must be/);
+  }
   assert.match(parseSettings({ color: "nope" }) as string, /color must be/);
   assert.equal(parseSettings([]), "expected an object");
   assert.equal(parseSettings(null), "expected an object");
@@ -231,6 +252,24 @@ test("settings are saved without the defaults and load back", () => {
 
   saveSettings(DEFAULT_SETTINGS, path);
   assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), {});
+});
+
+test("the selected symbol is saved and settings without a symbol use the logo", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pi-splash-"));
+  const path = join(dir, "splash.json");
+  const pi = change("symbol pi");
+
+  saveSettings(pi, path);
+  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { symbol: "pi" });
+  assert.deepEqual(loadSettings(path), { settings: pi });
+  saveSettings(change("symbol logo", pi), path);
+  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), {});
+  assert.deepEqual(loadSettings(path), { settings: DEFAULT_SETTINGS });
+  writeFileSync(path, JSON.stringify({ color: "rainbow", mode: "plain" }));
+  assert.deepEqual(loadSettings(path).settings, { ...DEFAULT_SETTINGS, mode: "plain", color: "rainbow" });
+  writeFileSync(path, JSON.stringify({ symbol: "mascot" }));
+  assert.deepEqual(loadSettings(path).settings, DEFAULT_SETTINGS);
+  assert.match(loadSettings(path).warning ?? "", /symbol must be/);
 });
 
 test("a broken config file falls back to the defaults with a warning", () => {

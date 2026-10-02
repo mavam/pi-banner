@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { SplashHeader, PI_ART, renderSplashLines, topPadding } from "./splash.ts";
+import { SplashHeader, PI_ART, renderLines, renderSplashLines, topPadding } from "./splash.ts";
 import { visibleWidth, type Hints } from "./instructions.ts";
 import { DEFAULT_SETTINGS, type Settings } from "./config.ts";
 
@@ -106,6 +106,27 @@ test("SplashHeader turns by default", () => {
   header.dispose();
 });
 
+test("SplashHeader applies the symbol immediately and rotates the logo at the configured speed", () => {
+  const { clock, header, renders } = makeHeader({ symbol: "pi", speed: 60 });
+  const pi = header.render(80);
+  const before = renders();
+  const settings = { ...DEFAULT_SETTINGS, symbol: "logo" as const, speed: 60 };
+  header.update(settings);
+  assert.equal(renders(), before + 1);
+  const logo = header.render(80);
+  assert.deepEqual(logo, renderLines(settings, 80));
+  assert.notDeepEqual(logo, pi);
+  clock.time = 250;
+  assert.notDeepEqual(header.render(80), logo);
+  clock.time = 1000;
+  assert.deepEqual(header.render(80), logo);
+  header.update({ ...settings, speed: 0 });
+  assert.equal(header.spinning, false);
+  header.update({ ...settings, mode: "plain" });
+  assert.equal(header.spinning, false);
+  header.dispose();
+});
+
 test("topPadding centers the splash screen in the viewport", () => {
   assert.equal(topPadding(14, 38), 12);
   assert.equal(topPadding(14, 39), 12); // rounds toward the top
@@ -206,7 +227,7 @@ test("SplashHeader shows no hints without pi's formatters", () => {
 });
 
 test("SplashHeader shows hints under the plain digits too", () => {
-  const lines = hintHeader({ mode: "plain" }).header.render(140);
+  const lines = hintHeader({ symbol: "pi", mode: "plain" }).header.render(140);
 
   assert.match(lines.at(-1)!, /commands/);
   assert.match(stripAnsi(lines.join("\n")), /3\.141592653589793/);
@@ -250,6 +271,16 @@ test("SplashHeader centers the π with its hints and leaves them room on short t
   const tight = hintHeader({ size: 2 }, { rows: 18 }).header.render(140);
   assert.equal(tight.length, 18);
   assert.match(tight.at(-1)!, /commands/);
+});
+
+test("SplashHeader fits the logo and its key hints in a short viewport", () => {
+  const lines = hintHeader({ symbol: "logo", size: 2 }, { rows: 18 }).header.render(80);
+  assert.equal(lines.length, 18);
+  assert.match(lines.at(-1)!, /commands/);
+  assert.match(lines.join(""), /[\u2801-\u28ff]/);
+  const plain = hintHeader({ symbol: "logo", mode: "plain" }).header.render(80);
+  assert.match(plain.at(-1)!, /commands/);
+  assert.match(stripAnsi(plain.join("")), /█/);
 });
 
 test("SplashHeader wraps the hints on a narrow terminal", () => {

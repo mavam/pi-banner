@@ -1,7 +1,7 @@
 {
   "name": "pi-splash",
   "version": "0.2.0",
-  "description": "A custom startup splash screen for pi with rainbow π ASCII art",
+  "description": "A custom startup splash screen for Pi with a rotating π or Pi logo",
   "type": "module",
   "files": [
     "splash.ts",
@@ -10,6 +10,7 @@
     "instructions.ts",
     "palette.ts",
     "pi3d.ts",
+    "logo3d.ts",
     "README.md",
     "LICENSE"
   ],
