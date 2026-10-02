@@ -18,6 +18,8 @@ const RESET = "\x1b[0m";
 const TURN = Math.PI * 2;
 /** Frame interval while the π spins. */
 const FRAME_MS = 50;
+/** Rows that the editor and footer keep at the bottom of the fullscreen layout. */
+const DOCK_ROWS = 6;
 
 function paletteLine(line: string, row: number, palette: Palette): string {
   let result = "";
@@ -58,6 +60,11 @@ export function renderLines(settings: Settings, width: number, angle = 0): strin
   });
 }
 
+/** Blank rows that center `height` rows in a viewport of `viewportRows` rows. */
+export function topPadding(height: number, viewportRows: number): number {
+  return Math.max(0, Math.floor((viewportRows - height) / 2));
+}
+
 interface Clock {
   now(): number;
 }
@@ -67,14 +74,25 @@ export class SplashHeader {
   private settings: Settings;
   private readonly requestRender: () => void;
   private readonly clock: Clock;
+  private readonly viewportRows: () => number;
   private angle = 0;
   private last: number;
   private timer: ReturnType<typeof setInterval> | undefined;
 
-  constructor(requestRender: () => void, settings: Settings, clock: Clock = performance) {
+  /**
+   * `viewportRows` is the height of the area to center the splash screen in,
+   * or 0 to keep it at the top.
+   */
+  constructor(
+    requestRender: () => void,
+    settings: Settings,
+    clock: Clock = performance,
+    viewportRows: () => number = () => 0,
+  ) {
     this.requestRender = requestRender;
     this.settings = settings;
     this.clock = clock;
+    this.viewportRows = viewportRows;
     this.last = clock.now();
     this.sync();
   }
@@ -99,7 +117,9 @@ export class SplashHeader {
       this.angle = (this.angle + turns * TURN) % TURN;
     }
     this.last = now;
-    return renderLines(this.settings, width, this.angle);
+    const lines = renderLines(this.settings, width, this.angle);
+    const padding = topPadding(lines.length, this.viewportRows());
+    return padding === 0 ? lines : [...Array.from({ length: padding }, () => ""), ...lines];
   }
 
   invalidate(): void {}
@@ -162,7 +182,10 @@ export default function (pi: ExtensionAPI) {
     if (loaded.warning) ctx.ui.notify(loaded.warning, "warning");
 
     ctx.ui.setHeader((tui) => {
-      const own = new SplashHeader(() => tui.requestRender(), settings);
+      // Fullscreen mode has a fixed viewport to center in. Regular mode leaves
+      // the layout to the terminal's scrollback, where padding would only waste rows.
+      const viewportRows = () => (tui.mode === "fullscreen" ? tui.terminal.rows - DOCK_ROWS : 0);
+      const own = new SplashHeader(() => tui.requestRender(), settings, performance, viewportRows);
       header = own;
       return {
         render: (width: number) => own.render(width),
