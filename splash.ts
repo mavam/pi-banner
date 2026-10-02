@@ -7,8 +7,10 @@ import {
   loadSettings,
   runCommand,
   saveSettings,
+  showInstructions,
   type Settings,
 } from "./config.ts";
+import { compactLines, expandedLines, type Hints } from "./instructions.ts";
 import { DEFAULT_PALETTE, parsePalette, type Palette } from "./palette.ts";
 import { DEFAULT_POSE, render3dLines } from "./pi3d.ts";
 
@@ -74,31 +76,40 @@ interface Clock {
   now(): number;
 }
 
+export interface SplashHeaderOptions {
+  clock?: Clock;
+  /**
+   * The height of the area to center the splash screen in, or 0 to keep it at
+   * the top.
+   */
+  viewportRows?: () => number;
+  /** Pi's key hint formatters; without them no hints are shown. */
+  hints?: Hints;
+  /** Whether pi's `quietStartup` setting asks for no startup help. */
+  quiet?: () => boolean;
+}
+
 /** The header component: draws the splash screen and keeps the 3D slab turning. */
 export class SplashHeader {
   private settings: Settings;
   private readonly requestRender: () => void;
   private readonly clock: Clock;
   private readonly viewportRows: () => number;
+  private readonly hints: Hints | undefined;
+  private readonly quiet: () => boolean;
+  private expanded = false;
   private angle = 0;
   private last: number;
   private timer: ReturnType<typeof setInterval> | undefined;
 
-  /**
-   * `viewportRows` is the height of the area to center the splash screen in,
-   * or 0 to keep it at the top.
-   */
-  constructor(
-    requestRender: () => void,
-    settings: Settings,
-    clock: Clock = performance,
-    viewportRows: () => number = () => 0,
-  ) {
+  constructor(requestRender: () => void, settings: Settings, options: SplashHeaderOptions = {}) {
     this.requestRender = requestRender;
     this.settings = settings;
-    this.clock = clock;
-    this.viewportRows = viewportRows;
-    this.last = clock.now();
+    this.clock = options.clock ?? performance;
+    this.viewportRows = options.viewportRows ?? (() => 0);
+    this.hints = options.hints;
+    this.quiet = options.quiet ?? (() => false);
+    this.last = this.clock.now();
     this.sync();
   }
 
@@ -115,6 +126,13 @@ export class SplashHeader {
     this.requestRender();
   }
 
+  /** Pi calls this when the user collapses or expands tool output, as it does for its own header. */
+  setExpanded(expanded: boolean): void {
+    if (expanded === this.expanded) return;
+    this.expanded = expanded;
+    this.requestRender();
+  }
+
   render(width: number): string[] {
     const now = this.clock.now();
     if (this.spinning) {
@@ -122,10 +140,19 @@ export class SplashHeader {
       this.angle = (this.angle + turns * TURN) % TURN;
     }
     this.last = now;
+
+    const hints =
+      this.hints && showInstructions(this.settings.instructions, this.quiet()) ? this.hints : undefined;
+    const compact = hints ? compactLines(hints, width) : [];
     const viewportRows = this.viewportRows();
-    const lines = renderLines(this.settings, width, this.angle, viewportRows);
-    const padding = topPadding(lines.length, viewportRows);
-    return padding === 0 ? lines : [...Array.from({ length: padding }, () => ""), ...lines];
+    // The hints take rows from the π, which shrinks to leave them room.
+    const room = viewportRows > 0 ? Math.max(1, viewportRows - compact.length) : 0;
+    const lines = renderLines(this.settings, width, this.angle, room);
+    // Center the π with its compact hints. Expanding the hints then only adds
+    // rows below, so the π stays where it is.
+    const padding = topPadding(lines.length + compact.length, viewportRows);
+    const below = hints && this.expanded ? expandedLines(hints, width) : compact;
+    return [...Array.from({ length: padding }, () => ""), ...lines, ...below];
   }
 
   invalidate(): void {}
@@ -151,9 +178,39 @@ export class SplashHeader {
   }
 }
 
+type PiModule = Pick<typeof import("@earendil-works/pi-coding-agent"), "keyHint" | "keyText" | "rawKeyHint">;
+type Keybinding = Parameters<PiModule["keyHint"]>[0];
+
+/**
+ * Pi's own hint formatters, which follow the user's keybindings and theme.
+ * `theme` is pi's live theme, so the hints follow theme changes too. A pi
+ * without the formatters gets no hints rather than a broken splash screen.
+ */
+function piHints(
+  pi: Partial<PiModule> | undefined,
+  theme: { fg(color: "muted", text: string): string },
+): Hints | undefined {
+  if (!pi?.keyHint || !pi.rawKeyHint || !pi.keyText) return undefined;
+  const { keyHint, rawKeyHint, keyText } = pi;
+  return {
+    hint: (keybinding, description) => keyHint(keybinding as Keybinding, description),
+    raw: (key, description) => rawKeyHint(key, description),
+    key: (keybinding) => keyText(keybinding as Keybinding),
+    muted: (text) => theme.fg("muted", text),
+  };
+}
+
 export default function (pi: ExtensionAPI) {
   let settings: Settings = { ...DEFAULT_SETTINGS };
   let header: SplashHeader | undefined;
+  let quiet = false;
+  const readQuiet = () => {
+    try {
+      quiet = pi.getSettings().quietStartup === true;
+    } catch {
+      quiet = false; // An older pi cannot report its settings.
+    }
+  };
 
   pi.registerCommand("splash", {
     description: "Tune the splash screen: mode, color, thickness, and rotation speed",
@@ -169,6 +226,7 @@ export default function (pi: ExtensionAPI) {
       }
       if ("settings" in result) {
         settings = result.settings;
+        readQuiet();
         header?.update(settings);
         try {
           saveSettings(settings);
@@ -176,7 +234,11 @@ export default function (pi: ExtensionAPI) {
           ctx.ui.notify(`Could not save the splash settings: ${(error as Error).message}`, "warning");
         }
       }
-      ctx.ui.notify(result.message, "info");
+      // Say why `auto` shows nothing, since the cause lives in another setting.
+      const asked = args.trim().split(/\s+/)[0];
+      const hidden =
+        settings.instructions === "auto" && quiet && ["", "instructions", "reset"].includes(asked ?? "");
+      ctx.ui.notify(hidden ? `${result.message}\nInstructions are hidden by pi's quietStartup.` : result.message, "info");
     },
   });
 
@@ -186,21 +248,32 @@ export default function (pi: ExtensionAPI) {
     const loaded = loadSettings();
     settings = loaded.settings;
     if (loaded.warning) ctx.ui.notify(loaded.warning, "warning");
+    readQuiet();
+    // Pi's formatters are loaded on demand so that the rest of the extension
+    // stays free of runtime dependencies. Without them there are no hints.
+    const piModule = await import("@earendil-works/pi-coding-agent").catch(() => undefined);
 
-    ctx.ui.setHeader((tui) => {
+    ctx.ui.setHeader((tui, theme) => {
       // Fullscreen mode has a fixed viewport to center in. Regular mode leaves
       // the layout to the terminal's scrollback, where padding would only waste rows.
       const viewportRows = () => (tui.mode === "fullscreen" ? tui.terminal.rows - DOCK_ROWS : 0);
-      const own = new SplashHeader(() => tui.requestRender(), settings, performance, viewportRows);
+      const own = new SplashHeader(() => tui.requestRender(), settings, {
+        viewportRows,
+        hints: piHints(piModule, theme),
+        quiet: () => quiet,
+      });
       header = own;
-      return {
+      // Not an object literal: pi looks for `setExpanded`, which the header type does not declare.
+      const component = {
         render: (width: number) => own.render(width),
         invalidate: () => own.invalidate(),
+        setExpanded: (expanded: boolean) => own.setExpanded(expanded),
         dispose() {
           own.dispose();
           if (header === own) header = undefined;
         },
       };
+      return component;
     });
   });
 

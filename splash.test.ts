@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { SplashHeader, PI_ART, renderSplashLines, topPadding } from "./splash.ts";
+import { visibleWidth, type Hints } from "./instructions.ts";
 import { DEFAULT_SETTINGS, type Settings } from "./config.ts";
 
 function stripAnsi(text: string): string {
@@ -35,7 +36,7 @@ test("renderSplashLines applies 24-bit ANSI colors", () => {
 function makeHeader(settings: Partial<Settings>) {
   const clock = { time: 0, now: () => clock.time };
   let renders = 0;
-  const header = new SplashHeader(() => renders++, { ...DEFAULT_SETTINGS, ...settings }, clock);
+  const header = new SplashHeader(() => renders++, { ...DEFAULT_SETTINGS, ...settings }, { clock });
   return { clock, header, renders: () => renders };
 }
 
@@ -120,8 +121,8 @@ test("topPadding never goes negative and ignores an unknown viewport", () => {
 test("SplashHeader pads the top to center in the viewport", () => {
   const clock = { now: () => 0 };
   const plain = { ...DEFAULT_SETTINGS, mode: "plain" as const };
-  const bare = new SplashHeader(() => {}, plain, clock).render(80);
-  const centered = new SplashHeader(() => {}, plain, clock, () => 38).render(80);
+  const bare = new SplashHeader(() => {}, plain, { clock }).render(80);
+  const centered = new SplashHeader(() => {}, plain, { clock, viewportRows: () => 38 }).render(80);
   const padding = centered.length - bare.length;
 
   assert.equal(padding, topPadding(bare.length, 38));
@@ -134,9 +135,9 @@ test("SplashHeader pads the top to center in the viewport", () => {
 test("SplashHeader keeps a large size within the viewport", () => {
   const clock = { now: () => 0 };
   const settings = { ...DEFAULT_SETTINGS, size: 2, speed: 0 };
-  const tight = new SplashHeader(() => {}, settings, clock, () => 18).render(100);
-  const roomy = new SplashHeader(() => {}, settings, clock, () => 60).render(100);
-  const regular = new SplashHeader(() => {}, settings, clock).render(100);
+  const tight = new SplashHeader(() => {}, settings, { clock, viewportRows: () => 18 }).render(100);
+  const roomy = new SplashHeader(() => {}, settings, { clock, viewportRows: () => 60 }).render(100);
+  const regular = new SplashHeader(() => {}, settings, { clock }).render(100);
 
   assert.equal(tight.length, 18); // shrunk to the viewport, nothing left to pad
   assert.equal(roomy.length, 28 + topPadding(28, 60)); // the full size, centered
@@ -146,7 +147,7 @@ test("SplashHeader keeps a large size within the viewport", () => {
 test("SplashHeader pads the 3D slab too, and re-reads the viewport on every render", () => {
   const clock = { now: () => 0 };
   let rows = 0;
-  const header = new SplashHeader(() => {}, { ...DEFAULT_SETTINGS, speed: 0 }, clock, () => rows);
+  const header = new SplashHeader(() => {}, { ...DEFAULT_SETTINGS, speed: 0 }, { clock, viewportRows: () => rows });
 
   const top = header.render(80);
   rows = 40;
@@ -156,4 +157,103 @@ test("SplashHeader pads the 3D slab too, and re-reads the viewport on every rend
   assert.equal(top.length, 14);
   assert.equal(centered.length, 14 + topPadding(14, 40));
   assert.deepEqual(centered.slice(-14), top);
+});
+
+/** Plain-text hints that name each key after its keybinding, so tests can read the layout. */
+const HINTS: Hints = {
+  hint: (keybinding, description) => `[${keybinding}] ${description}`,
+  raw: (key, description) => `[${key}] ${description}`,
+  key: (keybinding) => keybinding,
+  muted: (text) => text,
+};
+
+function hintHeader(settings: Partial<Settings>, options: { rows?: number; quiet?: boolean } = {}) {
+  let renders = 0;
+  const header = new SplashHeader(() => renders++, { ...DEFAULT_SETTINGS, speed: 0, ...settings }, {
+    clock: { now: () => 0 },
+    viewportRows: () => options.rows ?? 0,
+    hints: HINTS,
+    quiet: () => options.quiet ?? false,
+  });
+  return { header, renders: () => renders };
+}
+
+test("SplashHeader shows the key hints under the splash screen by default", () => {
+  const { header } = hintHeader({});
+  const lines = header.render(140);
+
+  assert.match(lines.at(-1)!, /\[app\.interrupt\] interrupt/);
+  assert.match(lines.at(-1)!, /\[app\.tools\.expand\] more/);
+  assert.equal(lines.length, 14 + 1);
+});
+
+test("SplashHeader shows no hints when instructions are off or pi is quiet", () => {
+  const bare = hintHeader({ instructions: "off" }).header.render(140);
+
+  assert.equal(bare.length, 14);
+  assert.doesNotMatch(bare.join("\n"), /interrupt/);
+  assert.deepEqual(hintHeader({ instructions: "auto" }, { quiet: true }).header.render(140), bare);
+  // Asking for the hints explicitly overrides pi's quiet startup.
+  assert.match(hintHeader({ instructions: "on" }, { quiet: true }).header.render(140).join("\n"), /interrupt/);
+});
+
+test("SplashHeader shows no hints without pi's formatters", () => {
+  const lines = new SplashHeader(() => {}, { ...DEFAULT_SETTINGS, speed: 0 }, { clock: { now: () => 0 } }).render(140);
+
+  assert.equal(lines.length, 14);
+});
+
+test("SplashHeader shows hints under the plain digits too", () => {
+  const lines = hintHeader({ mode: "plain" }).header.render(140);
+
+  assert.match(lines.at(-1)!, /interrupt/);
+  assert.match(stripAnsi(lines.join("\n")), /3\.141592653589793/);
+});
+
+test("SplashHeader expands the hints like pi's own header, adding rows below the π", () => {
+  const { header, renders } = hintHeader({}, { rows: 44 });
+  const collapsed = header.render(120);
+  const before = renders();
+  header.setExpanded(true);
+  const expanded = header.render(120);
+
+  assert.equal(renders(), before + 1);
+  assert.ok(expanded.length > collapsed.length + 10, `${collapsed.length} -> ${expanded.length} rows`);
+  assert.match(expanded.join("\n"), /\[drop files\] to attach/);
+  assert.doesNotMatch(collapsed.join("\n"), /drop files/);
+  // Within the header, everything above the hints, including the π, is unchanged.
+  // When the longer header outgrows the viewport, pi scrolls it, as for its own.
+  assert.deepEqual(expanded.slice(0, collapsed.length - 1), collapsed.slice(0, -1));
+
+  header.setExpanded(false);
+  assert.deepEqual(header.render(120), collapsed);
+});
+
+test("SplashHeader only asks for a render when the expansion changes", () => {
+  const { header, renders } = hintHeader({});
+  header.setExpanded(false);
+  assert.equal(renders(), 0);
+  header.setExpanded(true);
+  header.setExpanded(true);
+  assert.equal(renders(), 1);
+});
+
+test("SplashHeader centers the π with its hints and leaves them room on short terminals", () => {
+  const roomy = hintHeader({}, { rows: 44 }).header.render(140);
+  // The π's canvas has its own blank margin rows, so count the padding from the total.
+  assert.equal(roomy.length - (14 + 1), topPadding(14 + 1, 44));
+  assert.ok(roomy.slice(0, topPadding(14 + 1, 44)).every((line) => line === ""));
+
+  // Terminal too short for the full size: the π shrinks so that the hints still fit.
+  const tight = hintHeader({ size: 2 }, { rows: 18 }).header.render(140);
+  assert.equal(tight.length, 18);
+  assert.match(tight.at(-1)!, /interrupt/);
+});
+
+test("SplashHeader wraps the hints on a narrow terminal", () => {
+  const lines = hintHeader({}).header.render(40);
+  const hints = lines.filter((line) => /\[/.test(line));
+
+  assert.ok(hints.length > 1);
+  for (const line of lines) assert.ok(visibleWidth(line) <= 40, line);
 });
