@@ -3,9 +3,9 @@
  * the GIF loops without a jump.
  *
  * The recording starts with the shell prompt and the pi startup, and runs a bit
- * longer than one rotation. The rotation starts when the splash screen first
- * appears. Its length is where the π looks the same again, which a search
- * around the expected period finds. The period comes from the default speed,
+ * longer than one rotation. The rotation starts after the splash screen first
+ * appears and finishes painting. A search around the expected period finds
+ * where the symbol looks the same again. The period comes from the default speed,
  * but a recording is not exactly real time, so it is measured, not computed.
  *
  *   node --experimental-strip-types demo/loop.ts <recording.gif> <loop.gif>
@@ -67,9 +67,11 @@ function windowDifference(a: number, b: number): number {
 const inks = Array.from({ length: count }, (_, n) => ink(n));
 const sorted = [...inks].sort((a, b) => a - b);
 const typical = sorted[Math.floor(sorted.length * 0.75)]!;
-// The splash screen is up once a good part of its usual ink is on screen.
-const start = inks.findIndex((lit) => lit >= typical * 0.4);
-if (start < 0) throw new Error("the splash screen never appears in the recording");
+// Wait for the first complete paint: the terminal can expose a partial startup
+// frame with only the top of the symbol drawn and no key hints yet.
+const appeared = inks.findIndex((lit) => lit >= typical * 0.4);
+if (appeared < 0) throw new Error("the splash screen never appears in the recording");
+const start = appeared + Math.ceil(FPS * 0.5);
 
 const expected = (FPS * 60) / DEFAULT_SETTINGS.speed;
 const first = Math.floor(expected * 0.7);

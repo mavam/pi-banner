@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { PI_ART } from "./art.ts";
+import { LOGO_ART, PI_ART, type SplashSymbol } from "./art.ts";
 import {
   DEFAULT_SETTINGS,
   completions,
@@ -12,7 +12,8 @@ import {
   type Settings,
 } from "./config.ts";
 import { compactLines, expandedLines, type Hints } from "./instructions.ts";
-import { DEFAULT_PALETTE, parsePalette, type Palette } from "./palette.ts";
+import { renderLogo3dLines } from "./logo3d.ts";
+import { DEFAULT_PALETTE, parsePalette, symbolPalette, type Palette } from "./palette.ts";
 import { DEFAULT_POSE, render3dLines } from "./pi3d.ts";
 
 export { PI_ART };
@@ -41,13 +42,15 @@ function paletteLine(line: string, row: number, palette: Palette): string {
   return result + RESET;
 }
 
-export function renderSplashLines(width: number, palette: Palette = DEFAULT_PALETTE): string[] {
-  const maxLen = Math.max(...PI_ART.map((line) => line.length));
+export function renderSplashLines(width: number, palette: Palette = DEFAULT_PALETTE, symbol: SplashSymbol = "pi"): string[] {
+  const art = symbol === "logo" ? LOGO_ART : PI_ART;
+  const paint = symbolPalette(palette, symbol);
+  const maxLen = Math.max(...art.map((line) => line.length));
   const pad = Math.max(0, Math.floor((width - maxLen) / 2));
   const prefix = " ".repeat(pad);
   return [
     "",
-    ...PI_ART.map((line, row) => prefix + paletteLine(line, row, palette)),
+    ...art.map((line, row) => prefix + paletteLine(line.slice(0, Math.max(0, width - pad)), row, paint)),
     "",
   ];
 }
@@ -58,8 +61,9 @@ export function renderSplashLines(width: number, palette: Palette = DEFAULT_PALE
  */
 export function renderLines(settings: Settings, width: number, angle = 0, maxRows = 0): string[] {
   const palette = parsePalette(settings.color) ?? DEFAULT_PALETTE;
-  if (settings.mode === "plain") return renderSplashLines(width, palette);
-  return render3dLines(width, {
+  if (settings.mode === "plain") return renderSplashLines(width, palette, settings.symbol);
+  const render = settings.symbol === "logo" ? renderLogo3dLines : render3dLines;
+  return render(width, {
     pose: { yaw: DEFAULT_POSE.yaw + angle, pitch: DEFAULT_POSE.pitch },
     size: settings.size,
     maxRows,
@@ -209,7 +213,7 @@ export default function (pi: ExtensionAPI) {
   let quiet = false;
 
   pi.registerCommand("splash", {
-    description: "Tune the splash screen: mode, color, random color, thickness, and rotation speed",
+    description: "Tune the splash screen: symbol, mode, color, random color, size, thickness, and rotation speed",
     getArgumentCompletions: (argument) => {
       const items = completions(argument);
       return items.length > 0 ? items : null;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DEFAULT_COLOR, DEFAULT_PALETTE, PALETTE_NAMES, hslToRgb, parsePalette, randomPreset, rgbToHsl, shade } from "./palette.ts";
+import { DEFAULT_COLOR, DEFAULT_PALETTE, PALETTE_NAMES, hslToRgb, parsePalette, randomPreset, rgbToHsl, shade, symbolPalette } from "./palette.ts";
 
 test("parsePalette knows every preset", () => {
   for (const name of PALETTE_NAMES) assert.ok(parsePalette(name), name);
@@ -67,6 +67,27 @@ test("the pi preset uses the logo's colors by region", () => {
   assert.notDeepEqual(pi.at(12, 6), coral); // the left leg is blue
   assert.ok(pi.at(12, 6)[2] > pi.at(12, 6)[0]);
   assert.ok(pi.at(30, 10)[0] > pi.at(30, 10)[2]); // the foot is yellow
+});
+
+test("the logo palette follows each pixel of the original logo", () => {
+  const logo = symbolPalette(DEFAULT_PALETTE, "logo");
+  const colors = { c: [228, 138, 122], b: [79, 142, 179], y: [234, 182, 93] };
+  ["ccc.", "b.c.", "bb.y", "b..y"].forEach((line, row) => {
+    [...line].forEach((pixel, column) => {
+      if (pixel === ".") return;
+      assert.deepEqual(logo.at(column * 6, row * 3), colors[pixel as keyof typeof colors]);
+    });
+  });
+  assert.equal(symbolPalette(DEFAULT_PALETTE, "pi"), DEFAULT_PALETTE);
+});
+
+test("logo palettes keep solid colors and span the whole gradient", () => {
+  const solid = symbolPalette(parsePalette("#f80")!, "logo");
+  assert.deepEqual(solid.at(0, 0), [255, 136, 0]);
+  assert.deepEqual(solid.at(23, 11), [255, 136, 0]);
+  const gradient = symbolPalette(parsePalette("#000,#fff")!, "logo");
+  assert.deepEqual(gradient.at(0, 0), [0, 0, 0]);
+  assert.deepEqual(gradient.at(23, 11), [255, 255, 255]);
 });
 
 test("shade darkens and lightens while keeping the hue", () => {

@@ -1,4 +1,4 @@
-import { PI_ART } from "./art.ts";
+import { LOGO_PIXELS, LOGO_PIXEL_COLUMNS, LOGO_PIXEL_ROWS, PI_ART, type SplashSymbol } from "./art.ts";
 
 export type Rgb = [number, number, number];
 
@@ -125,6 +125,27 @@ const PI: Palette = {
     return row >= 9 ? YELLOW : CORAL;
   },
 };
+
+/** Exact pixel colors of Pi's logo, rather than the regions of the mathematical π. */
+const LOGO: Palette = {
+  at(column, row) {
+    const pixel = LOGO_PIXELS[Math.floor(row / LOGO_PIXEL_ROWS)]?.[Math.floor(column / LOGO_PIXEL_COLUMNS)];
+    return pixel === "b" ? BLUE : pixel === "y" ? YELLOW : CORAL;
+  },
+};
+
+/** Adapt a palette to the logo's coordinates, keeping gradients across the whole symbol. */
+export function symbolPalette(palette: Palette, symbol: SplashSymbol): Palette {
+  if (symbol === "pi") return palette;
+  if (palette === PI) return LOGO;
+  const columns = Math.max(...PI_ART.map((line) => line.length));
+  return {
+    at: (column, row) => palette.at(
+      column * (columns - 1) / (LOGO_PIXEL_COLUMNS * 4 - 1),
+      row * (PI_ART.length - 1) / (LOGO_PIXEL_ROWS * 4 - 1),
+    ),
+  };
+}
 
 const PRESETS: Record<PaletteName, Palette> = {
   rainbow: RAINBOW,
