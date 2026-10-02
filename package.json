@@ -5,6 +5,11 @@
   "type": "module",
   "files": [
     "splash.ts",
+    "art.ts",
+    "config.ts",
+    "instructions.ts",
+    "palette.ts",
+    "pi3d.ts",
     "README.md",
     "LICENSE"
   ],
@@ -28,6 +33,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
   },
   "pi": {
     "extensions": [
