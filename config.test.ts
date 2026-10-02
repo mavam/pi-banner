@@ -12,6 +12,8 @@ import {
   parseSettings,
   runCommand,
   saveSettings,
+  sessionColor,
+  shownSettings,
   type Settings,
 } from "./config.ts";
 
@@ -21,6 +23,13 @@ function change(args: string, current: Settings = DEFAULT_SETTINGS): Settings {
   return result.settings;
 }
 
+/** Run a command in a session that shows `shown` and picks `pick` when it shuffles. */
+function session(args: string, current: Settings, shown?: string, pick = "ocean") {
+  const result = runCommand(args, current, shown, () => pick);
+  assert.ok("settings" in result, `"${args}": ${JSON.stringify(result)}`);
+  return result;
+}
+
 function fails(args: string): string {
   const result = runCommand(args, DEFAULT_SETTINGS);
   assert.ok("error" in result, `"${args}" should fail`);
@@ -28,7 +37,7 @@ function fails(args: string): string {
 }
 
 test("the defaults are a slowly turning 3D π in the pi logo colors", () => {
-  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", size: 1, thickness: 8, speed: 10 });
+  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", random: false, size: 1, thickness: 8, speed: 10 });
 });
 
 test("/splash without arguments describes the settings and changes nothing", () => {
@@ -85,7 +94,7 @@ test("/splash rejects missing values and unknown options", () => {
 });
 
 test("/splash reset restores the defaults", () => {
-  const tuned = { mode: "plain" as const, color: "fire", size: 1.6, thickness: 3, speed: 9 };
+  const tuned = { mode: "plain" as const, color: "fire", random: true, size: 1.6, thickness: 3, speed: 9 };
 
   assert.deepEqual(change("reset", tuned), DEFAULT_SETTINGS);
 });
@@ -97,16 +106,85 @@ test("/splash never mutates the current settings", () => {
   assert.deepEqual(current, DEFAULT_SETTINGS);
 });
 
+test("/splash random turns the random color scheme on and off", () => {
+  assert.equal(change("random on").random, true);
+  assert.equal(change("random true").random, true);
+  assert.equal(change("random OFF", { ...DEFAULT_SETTINGS, random: true }).random, false);
+  assert.equal(change("random false", { ...DEFAULT_SETTINGS, random: true }).random, false);
+  assert.match(fails("random maybe"), /random must be on or off/);
+  assert.match(fails("random"), /Missing value for random/);
+});
+
+test("turning random on picks a color right away and says so", () => {
+  const result = session("random on", DEFAULT_SETTINGS);
+
+  assert.equal(result.shown, "ocean");
+  assert.match(result.message, /color ocean \(random\)/);
+  // The saved color stays what it was; only the session shows the pick.
+  assert.equal(result.settings.color, "pi");
+});
+
+test("random on shuffles again, and off returns to the saved color", () => {
+  const on = { ...DEFAULT_SETTINGS, random: true };
+
+  assert.equal(session("random on", on, "fire", "mono").shown, "mono");
+  const off = session("random off", on, "fire");
+  assert.equal(off.shown, undefined);
+  assert.match(off.message, /color pi(?!.*random)/);
+});
+
+test("choosing a color or resetting ends the random pick, other changes keep it", () => {
+  const on = { ...DEFAULT_SETTINGS, random: true };
+
+  // Even the saved color counts: typing it asks to see it.
+  assert.equal(session("color pi", on, "fire").shown, undefined);
+  assert.match(session("color sunset", on, "fire").message, /color sunset, random on/);
+  assert.equal(session("reset", on, "fire").shown, undefined);
+  assert.equal(session("size 1.5", on, "fire").shown, "fire");
+  assert.match(session("speed 6", on, "fire").message, /color fire \(random\)/);
+  assert.equal(session("plain", on, "fire").shown, "fire");
+});
+
+test("/splash shows the random pick and changes nothing", () => {
+  const on = { ...DEFAULT_SETTINGS, random: true };
+  const result = runCommand("", on, "fire");
+
+  assert.ok(!("settings" in result) && "message" in result);
+  assert.match(result.message, /color fire \(random\)/);
+  assert.match(result.message, /\/splash random on\|off/);
+});
+
+test("a session picks a random color only with the random setting", () => {
+  const on = { ...DEFAULT_SETTINGS, random: true };
+
+  assert.equal(sessionColor(on, "start", undefined, () => "fire"), "fire");
+  assert.equal(sessionColor(DEFAULT_SETTINGS, "start", undefined, () => "fire"), undefined);
+  assert.equal(sessionColor(DEFAULT_SETTINGS, "random", "fire", () => "mono"), undefined);
+});
+
+test("the settings as shown carry the random color without changing the saved ones", () => {
+  const on = { ...DEFAULT_SETTINGS, random: true };
+
+  assert.deepEqual(shownSettings(on, "fire"), { ...on, color: "fire" });
+  assert.equal(shownSettings(on), on);
+  assert.equal(on.color, "pi");
+});
+
 test("completions cover options and values", () => {
   assert.deepEqual(
     completions("").map((item) => item.label),
-    ["plain", "3d", "color", "size", "thickness", "speed", "reset"],
+    ["plain", "3d", "color", "random", "size", "thickness", "speed", "reset"],
   );
   assert.deepEqual(completions("th"), [{ value: "thickness", label: "thickness" }]);
   assert.deepEqual(completions("si"), [{ value: "size", label: "size" }]);
   assert.ok(completions("size ").some((item) => item.value === "size 1"));
   assert.deepEqual(completions("color su"), [{ value: "color sunset", label: "sunset" }]);
   assert.ok(completions("speed ").some((item) => item.value === "speed 0"));
+  assert.deepEqual(completions("ra"), [{ value: "random", label: "random" }]);
+  assert.deepEqual(
+    completions("random ").map((item) => item.value),
+    ["random on", "random off"],
+  );
   assert.deepEqual(completions("reset "), []);
 });
 
@@ -124,6 +202,19 @@ test("parseSettings fills in defaults and validates strictly", () => {
   assert.match(parseSettings({ color: "nope" }) as string, /color must be/);
   assert.equal(parseSettings([]), "expected an object");
   assert.equal(parseSettings(null), "expected an object");
+});
+
+test("the random setting is saved only when on, and must be a boolean", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pi-splash-"));
+  const path = join(dir, "splash.json");
+  const on = { ...DEFAULT_SETTINGS, random: true };
+
+  saveSettings(on, path);
+  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { random: true });
+  assert.deepEqual(loadSettings(path), { settings: on });
+
+  assert.deepEqual(parseSettings({ random: false }), DEFAULT_SETTINGS);
+  assert.match(parseSettings({ random: "on" }) as string, /random must be on or off/);
 });
 
 test("settings are saved without the defaults and load back", () => {

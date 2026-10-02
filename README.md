@@ -20,6 +20,8 @@ pi install npm:pi-splash
 - Centers the splash screen in the terminal in fullscreen mode
 - Keeps a usage overview under it: the key hints from pi's own header that are
   specific to pi, in your theme's colors and with your keybindings
+- Can start every session in a different color scheme, if you turn on `random`
+  and like a little surprise with your coffee
 - Switches to the `plain` mode for the number nerds: the digits of π, laid out
   as the π
 - Restores pi's usual startup screen when you remove or disable the extension,
@@ -30,15 +32,16 @@ pi install npm:pi-splash
 Change the splash screen at any time with `/splash`. Changes apply immediately and are
 saved for the next session.
 
-| Command                 | Effect                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `/splash`               | Show the current settings                                                                               |
-| `/splash 3d` / `plain`  | Switch between the 3D slab (default) and the digits of π                                                |
-| `/splash color <value>` | Paint the π: `pi` (default), `rainbow`, `sunset`, `ocean`, `fire`, `mono`, or hex colors                |
-| `/splash size <n>`      | Size of the 3D π, from `0.5` to `2` times the default (default `1`); it shrinks to fit a small terminal |
-| `/splash thickness <n>` | Depth of the 3D slab, from `0.5` to `20` block widths (default `8`)                                     |
-| `/splash speed <n>`     | Turns per minute, from `0` to `60`; `0` keeps the π still (default `10`)                                |
-| `/splash reset`         | Restore the defaults                                                                                    |
+| Command                     | Effect                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `/splash`                   | Show the current settings                                                                               |
+| `/splash 3d` / `plain`      | Switch between the 3D slab (default) and the digits of π                                                |
+| `/splash color <value>`     | Paint the π: `pi` (default), `rainbow`, `sunset`, `ocean`, `fire`, `mono`, or hex colors                |
+| `/splash random on` / `off` | Start every session with a random color scheme instead of your color (default `off`)                    |
+| `/splash size <n>`          | Size of the 3D π, from `0.5` to `2` times the default (default `1`); it shrinks to fit a small terminal |
+| `/splash thickness <n>`     | Depth of the 3D slab, from `0.5` to `20` block widths (default `8`)                                     |
+| `/splash speed <n>`         | Turns per minute, from `0` to `60`; `0` keeps the π still (default `10`)                                |
+| `/splash reset`             | Restore the defaults                                                                                    |
 
 Colors can be a preset or hex colors. One hex color paints the whole π, and
 several blend along its diagonal:
@@ -50,6 +53,13 @@ several blend along its diagonal:
 
 The `pi` preset uses the colors of the pi logo. Size, thickness, and speed
 only affect the 3D mode; color applies to both modes.
+
+With `/splash random on`, every session starts with a preset picked at random
+(`pi`, `rainbow`, `sunset`, `ocean`, `fire`, or `mono`), and turning it on picks
+one right away. The pick only lasts for the session: your saved color stays as
+it is and comes back when you turn `random` off. Choosing a color with
+`/splash color` ends the pick for the current session, and `/splash random on`
+shuffles again.
 
 To get the original rainbow digits:
 
@@ -80,6 +90,9 @@ You can also edit it by hand, and pi picks it up on the next session start:
   "color": "rainbow"
 }
 ```
+
+Set `"random": true` to start every session with a random color scheme; `color`
+then only applies when you turn `random` off.
 
 Only settings that differ from the defaults are saved. The file is validated
 strictly: an unknown key or invalid value falls back to the defaults and shows a

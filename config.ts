@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { COLOR_HELP, DEFAULT_COLOR, PALETTE_NAMES, parsePalette } from "./palette.ts";
+import { COLOR_HELP, DEFAULT_COLOR, PALETTE_NAMES, parsePalette, randomPreset } from "./palette.ts";
 import { DEFAULT_SIZE, DEFAULT_THICKNESS } from "./pi3d.ts";
 
 export const MODES = ["plain", "3d"] as const;
@@ -13,6 +13,8 @@ export interface Settings {
   mode: Mode;
   /** A palette name, or hex colors; see `parsePalette`. */
   color: string;
+  /** Start every session with a random preset instead of `color`. */
+  random: boolean;
   /** How large the 3D slab is, as a multiple of the default size. */
   size: number;
   /** Depth of the 3D slab in block widths. */
@@ -24,6 +26,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   mode: "3d",
   color: DEFAULT_COLOR,
+  random: false,
   size: DEFAULT_SIZE,
   thickness: DEFAULT_THICKNESS,
   speed: 10,
@@ -45,6 +48,8 @@ function problem(key: keyof Settings, value: unknown): string | undefined {
       return typeof value === "string" && parsePalette(value)
         ? undefined
         : `color must be ${COLOR_HELP}`;
+    case "random":
+      return typeof value === "boolean" ? undefined : "random must be on or off";
     case "size":
       return inRange(value, SIZE_RANGE)
         ? undefined
@@ -83,16 +88,47 @@ export function parseSettings(value: unknown): Settings | string {
   return settings;
 }
 
-export function describeSettings(settings: Settings): string {
-  const { mode, color, size, thickness, speed } = settings;
+/**
+ * A one-line summary of the settings. `shown` is the random color that the
+ * session shows instead of the saved one, if any.
+ */
+export function describeSettings(settings: Settings, shown?: string): string {
+  const { mode, color, random, size, thickness, speed } = settings;
+  const paint = shown ? `color ${shown} (random)` : `color ${color}${random ? ", random on" : ""}`;
   return mode === "plain"
-    ? `mode plain, color ${color}`
-    : `mode 3d, color ${color}, size ${size}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}`;
+    ? `mode plain, ${paint}`
+    : `mode 3d, ${paint}, size ${size}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}`;
+}
+
+/** The settings as the session shows them: with its random color, if it has one. */
+export function shownSettings(settings: Settings, shown?: string): Settings {
+  return shown ? { ...settings, color: shown } : settings;
+}
+
+/** What a change to the settings was about: a setting, `reset`, or the session `start`. */
+export type Change = keyof Settings | "reset" | "start";
+
+/**
+ * The random color that a session shows after a change, if any. Without the
+ * `random` setting there is none. A new session or turning `random` on picks
+ * one, which also shuffles again when it is already on. Choosing a `color`
+ * ends the random pick for now, and any other change keeps `shown`.
+ */
+export function sessionColor(
+  settings: Settings,
+  change: Change,
+  shown?: string,
+  pick: () => string = randomPreset,
+): string | undefined {
+  if (!settings.random) return undefined;
+  if (change === "start" || change === "random") return pick();
+  return change === "color" ? undefined : shown;
 }
 
 const USAGE = [
   "/splash [plain|3d]       switch the mode",
   `/splash color <value>    ${COLOR_HELP}`,
+  "/splash random on|off   start every session with a random color scheme",
   `/splash size <n>         ${SIZE_RANGE[0]}-${SIZE_RANGE[1]} times the default size, 1 is the default`,
   `/splash thickness <n>    ${THICKNESS_RANGE[0]}-${THICKNESS_RANGE[1]} block widths`,
   `/splash speed <n>        ${SPEED_RANGE[0]}-${SPEED_RANGE[1]} turns per minute, 0 keeps the π still`,
@@ -100,18 +136,30 @@ const USAGE = [
 ].join("\n");
 
 export type CommandResult =
-  | { settings: Settings; message: string }
+  | { settings: Settings; shown: string | undefined; message: string }
   | { message: string }
   | { error: string };
 
-/** Interpret the arguments of `/splash`. */
-export function runCommand(args: string, current: Settings): CommandResult {
+/**
+ * Interpret the arguments of `/splash`. `shown` is the random color that the
+ * session shows, and the result says which one it shows after the command.
+ */
+export function runCommand(
+  args: string,
+  current: Settings,
+  shown?: string,
+  pick?: () => string,
+): CommandResult {
   const [first = "", ...rest] = args.trim().split(/\s+/);
   const value = rest.join(" ");
 
-  if (first === "") return { message: `Splash: ${describeSettings(current)}\n${USAGE}` };
+  if (first === "") return { message: `Splash: ${describeSettings(current, shown)}\n${USAGE}` };
   if (first === "reset") {
-    return { settings: { ...DEFAULT_SETTINGS }, message: `Splash reset: ${describeSettings(DEFAULT_SETTINGS)}` };
+    return {
+      settings: { ...DEFAULT_SETTINGS },
+      shown: undefined,
+      message: `Splash reset: ${describeSettings(DEFAULT_SETTINGS)}`,
+    };
   }
 
   // `/splash 3d` is short for `/splash mode 3d`.
@@ -122,12 +170,29 @@ export function runCommand(args: string, current: Settings): CommandResult {
   if (text === "") return { error: `Missing value for ${key}` };
 
   const setting = key as keyof Settings;
-  const parsed = setting === "size" || setting === "thickness" || setting === "speed" ? Number(text) : text;
+  const parsed = parseValue(setting, text);
   const reason = problem(setting, parsed);
   if (reason) return { error: reason };
 
   const settings = { ...current, [setting]: parsed };
-  return { settings, message: `Splash: ${describeSettings(settings)}` };
+  const next = sessionColor(settings, setting, shown, pick);
+  return { settings, shown: next, message: `Splash: ${describeSettings(settings, next)}` };
+}
+
+/** The value that the text of a command stands for; invalid text stays as it is. */
+function parseValue(setting: keyof Settings, text: string): unknown {
+  switch (setting) {
+    case "size":
+    case "thickness":
+    case "speed":
+      return Number(text);
+    case "random": {
+      const word = text.toLowerCase();
+      return word === "on" || word === "true" ? true : word === "off" || word === "false" ? false : text;
+    }
+    default:
+      return text;
+  }
 }
 
 /** Completions for the whole argument text of `/splash`. */
@@ -139,12 +204,13 @@ export function completions(argument: string): { value: string; label: string }[
       .filter((name) => name.startsWith(prefix))
       .map((name) => ({ value: head + name, label: name }));
 
-  if (space === -1) return pick([...MODES, "color", "size", "thickness", "speed", "reset"], text);
+  if (space === -1) return pick([...MODES, "color", "random", "size", "thickness", "speed", "reset"], text);
   const key = text.slice(0, space);
   const prefix = text.slice(space + 1);
   const head = `${key} `;
   if (key === "color") return pick(PALETTE_NAMES, prefix, head);
   if (key === "mode") return pick(MODES, prefix, head);
+  if (key === "random") return pick(["on", "off"], prefix, head);
   if (key === "size") return pick(["0.6", "0.8", "1", "1.4", "2"], prefix, head);
   if (key === "thickness") return pick(["2", "4", "7", "10", "14"], prefix, head);
   if (key === "speed") return pick(["0", "3", "6", "12", "24"], prefix, head);

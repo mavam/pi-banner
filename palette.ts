@@ -17,6 +17,8 @@ export const PALETTE_NAMES = [
   "mono",
 ] as const;
 
+export type PaletteName = (typeof PALETTE_NAMES)[number];
+
 /** Lightness of the rainbow, which the plain splash screen draws unshaded. */
 export const BASE_LIGHTNESS = 0.65;
 
@@ -124,7 +126,7 @@ const PI: Palette = {
   },
 };
 
-const PRESETS: Record<(typeof PALETTE_NAMES)[number], Palette> = {
+const PRESETS: Record<PaletteName, Palette> = {
   rainbow: RAINBOW,
   pi: PI,
   sunset: gradient([rgb("#ffb347"), rgb("#ff5e7e"), rgb("#9b5cff")]),
@@ -136,6 +138,11 @@ const PRESETS: Record<(typeof PALETTE_NAMES)[number], Palette> = {
 /** The palette that new installations start with. */
 export const DEFAULT_COLOR = "pi";
 export const DEFAULT_PALETTE = PRESETS[DEFAULT_COLOR];
+
+/** A random preset; `random` returns a number in [0, 1), like `Math.random`. */
+export function randomPreset(random: () => number = Math.random): PaletteName {
+  return PALETTE_NAMES[Math.min(PALETTE_NAMES.length - 1, Math.floor(random() * PALETTE_NAMES.length))]!;
+}
 
 const cache = new Map<string, Palette>();
 
