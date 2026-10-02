@@ -182,19 +182,21 @@ test("SplashHeader shows the key hints under the splash screen by default", () =
   const { header } = hintHeader({});
   const lines = header.render(140);
 
-  assert.match(lines.at(-1)!, /\[app\.interrupt\] interrupt/);
+  assert.match(lines.at(-1)!, /\[\/\] commands/);
+  assert.match(lines.at(-1)!, /\[!\] bash/);
   assert.match(lines.at(-1)!, /\[app\.tools\.expand\] more/);
   assert.equal(lines.length, 14 + 1);
 });
 
-test("SplashHeader shows no hints when instructions are off or pi is quiet", () => {
-  const bare = hintHeader({ instructions: "off" }).header.render(140);
+test("SplashHeader shows no hints when pi's quietStartup asks for quiet", () => {
+  const quiet = hintHeader({}, { quiet: true }).header.render(140);
+  const loud = hintHeader({}, { quiet: false }).header.render(140);
 
-  assert.equal(bare.length, 14);
-  assert.doesNotMatch(bare.join("\n"), /interrupt/);
-  assert.deepEqual(hintHeader({ instructions: "auto" }, { quiet: true }).header.render(140), bare);
-  // Asking for the hints explicitly overrides pi's quiet startup.
-  assert.match(hintHeader({ instructions: "on" }, { quiet: true }).header.render(140).join("\n"), /interrupt/);
+  assert.equal(quiet.length, 14);
+  assert.doesNotMatch(quiet.join("\n"), /commands/);
+  assert.equal(loud.length, 15);
+  // Only the hints differ: the splash screen itself is the same.
+  assert.deepEqual(loud.slice(0, 14), quiet);
 });
 
 test("SplashHeader shows no hints without pi's formatters", () => {
@@ -206,7 +208,7 @@ test("SplashHeader shows no hints without pi's formatters", () => {
 test("SplashHeader shows hints under the plain digits too", () => {
   const lines = hintHeader({ mode: "plain" }).header.render(140);
 
-  assert.match(lines.at(-1)!, /interrupt/);
+  assert.match(lines.at(-1)!, /commands/);
   assert.match(stripAnsi(lines.join("\n")), /3\.141592653589793/);
 });
 
@@ -247,7 +249,7 @@ test("SplashHeader centers the π with its hints and leaves them room on short t
   // Terminal too short for the full size: the π shrinks so that the hints still fit.
   const tight = hintHeader({ size: 2 }, { rows: 18 }).header.render(140);
   assert.equal(tight.length, 18);
-  assert.match(tight.at(-1)!, /interrupt/);
+  assert.match(tight.at(-1)!, /commands/);
 });
 
 test("SplashHeader wraps the hints on a narrow terminal", () => {

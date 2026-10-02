@@ -24,8 +24,8 @@ pi install npm:pi-splash
   improvement to your day: a lit slab drawn in braille dots that slowly turns
   around
 - Centers the splash screen in the terminal in fullscreen mode
-- Keeps pi's usage overview under it: the key hints that pi's own header shows,
-  in your theme's colors and with your keybindings
+- Keeps a usage overview under it: the key hints from pi's own header that are
+  specific to pi, in your theme's colors and with your keybindings
 - Switches to the `plain` mode for the number nerds: the digits of π, laid out
   as the π
 - Restores pi's usual startup screen when you remove or disable the extension,
@@ -36,16 +36,15 @@ pi install npm:pi-splash
 Change the splash screen at any time with `/splash`. Changes apply immediately and are
 saved for the next session.
 
-| Command                    | Effect                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `/splash`                  | Show the current settings                                                                               |
-| `/splash 3d` / `plain`     | Switch between the 3D slab (default) and the digits of π                                                |
-| `/splash color <value>`    | Paint the π: `pi` (default), `rainbow`, `sunset`, `ocean`, `fire`, `mono`, or hex colors                |
-| `/splash size <n>`         | Size of the 3D π, from `0.5` to `2` times the default (default `1`); it shrinks to fit a small terminal |
-| `/splash thickness <n>`    | Depth of the 3D slab, from `0.5` to `20` block widths (default `8`)                                     |
-| `/splash speed <n>`        | Turns per minute, from `0` to `60`; `0` keeps the π still (default `10`)                                |
-| `/splash instructions <v>` | Show pi's key hints under the π: `auto` (default), `on`, or `off`                                       |
-| `/splash reset`            | Restore the defaults                                                                                    |
+| Command                 | Effect                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| `/splash`               | Show the current settings                                                                               |
+| `/splash 3d` / `plain`  | Switch between the 3D slab (default) and the digits of π                                                |
+| `/splash color <value>` | Paint the π: `pi` (default), `rainbow`, `sunset`, `ocean`, `fire`, `mono`, or hex colors                |
+| `/splash size <n>`      | Size of the 3D π, from `0.5` to `2` times the default (default `1`); it shrinks to fit a small terminal |
+| `/splash thickness <n>` | Depth of the 3D slab, from `0.5` to `20` block widths (default `8`)                                     |
+| `/splash speed <n>`     | Turns per minute, from `0` to `60`; `0` keeps the π still (default `10`)                                |
+| `/splash reset`         | Restore the defaults                                                                                    |
 
 Colors can be a preset or hex colors. One hex color paints the whole π, and
 several blend along its diagonal:
@@ -58,18 +57,23 @@ several blend along its diagonal:
 The `pi` preset uses the colors of the pi logo. Size, thickness, and speed
 only affect the 3D mode; color applies to both modes.
 
-The key hints are the same ones that pi's own startup header shows, so you
-don't lose the usage overview by installing a splash screen. Press `ctrl+o`, or
-whatever you bound to expanding tool output, to expand them into the full list,
-just like in pi's header. `auto` shows them unless pi's `quietStartup` setting is
-`true`; `on` always shows them, and `off` never does.
-
 To get the original rainbow digits:
 
 ```text
 /splash plain
 /splash color rainbow
 ```
+
+## 🧭 Key hints
+
+Under the π, the splash screen shows the key hints from pi's own startup header
+that are specific to pi, such as `/` for commands and `!` for bash. They use
+your keybindings and your theme's colors, and they skip the keys that every
+terminal user knows, such as `esc` to interrupt or `ctrl+c` to exit.
+
+Press `ctrl+o`, or whatever you bound to expanding tool output, to expand them
+into a longer list, just like in pi's header. Like that header, they follow pi's
+`quietStartup` setting: set it to `true` to hide them.
 
 ## ⚙️ Configuration
 

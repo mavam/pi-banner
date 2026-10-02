@@ -7,7 +7,6 @@ import {
   loadSettings,
   runCommand,
   saveSettings,
-  showInstructions,
   type Settings,
 } from "./config.ts";
 import { compactLines, expandedLines, type Hints } from "./instructions.ts";
@@ -85,7 +84,7 @@ export interface SplashHeaderOptions {
   viewportRows?: () => number;
   /** Pi's key hint formatters; without them no hints are shown. */
   hints?: Hints;
-  /** Whether pi's `quietStartup` setting asks for no startup help. */
+  /** Whether pi's `quietStartup` setting asks for no startup help, which hides the key hints. */
   quiet?: () => boolean;
 }
 
@@ -141,8 +140,7 @@ export class SplashHeader {
     }
     this.last = now;
 
-    const hints =
-      this.hints && showInstructions(this.settings.instructions, this.quiet()) ? this.hints : undefined;
+    const hints = this.quiet() ? undefined : this.hints;
     const compact = hints ? compactLines(hints, width) : [];
     const viewportRows = this.viewportRows();
     // The hints take rows from the π, which shrinks to leave them room.
@@ -203,14 +201,8 @@ function piHints(
 export default function (pi: ExtensionAPI) {
   let settings: Settings = { ...DEFAULT_SETTINGS };
   let header: SplashHeader | undefined;
+  // Like pi's own header, the key hints follow `quietStartup` as of the session start.
   let quiet = false;
-  const readQuiet = () => {
-    try {
-      quiet = pi.getSettings().quietStartup === true;
-    } catch {
-      quiet = false; // An older pi cannot report its settings.
-    }
-  };
 
   pi.registerCommand("splash", {
     description: "Tune the splash screen: mode, color, thickness, and rotation speed",
@@ -226,7 +218,6 @@ export default function (pi: ExtensionAPI) {
       }
       if ("settings" in result) {
         settings = result.settings;
-        readQuiet();
         header?.update(settings);
         try {
           saveSettings(settings);
@@ -234,11 +225,7 @@ export default function (pi: ExtensionAPI) {
           ctx.ui.notify(`Could not save the splash settings: ${(error as Error).message}`, "warning");
         }
       }
-      // Say why `auto` shows nothing, since the cause lives in another setting.
-      const asked = args.trim().split(/\s+/)[0];
-      const hidden =
-        settings.instructions === "auto" && quiet && ["", "instructions", "reset"].includes(asked ?? "");
-      ctx.ui.notify(hidden ? `${result.message}\nInstructions are hidden by pi's quietStartup.` : result.message, "info");
+      ctx.ui.notify(result.message, "info");
     },
   });
 
@@ -248,7 +235,11 @@ export default function (pi: ExtensionAPI) {
     const loaded = loadSettings();
     settings = loaded.settings;
     if (loaded.warning) ctx.ui.notify(loaded.warning, "warning");
-    readQuiet();
+    try {
+      quiet = pi.getSettings().quietStartup === true;
+    } catch {
+      quiet = false; // An older pi cannot report its settings.
+    }
     // Pi's formatters are loaded on demand so that the rest of the extension
     // stays free of runtime dependencies. Without them there are no hints.
     const piModule = await import("@earendil-works/pi-coding-agent").catch(() => undefined);

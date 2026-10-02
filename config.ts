@@ -8,10 +8,6 @@ import { DEFAULT_SIZE, DEFAULT_THICKNESS } from "./pi3d.ts";
 export const MODES = ["plain", "3d"] as const;
 export type Mode = (typeof MODES)[number];
 
-/** `auto` shows the key hints unless pi's `quietStartup` hides startup help. */
-export const INSTRUCTION_MODES = ["auto", "on", "off"] as const;
-export type InstructionsMode = (typeof INSTRUCTION_MODES)[number];
-
 export interface Settings {
   /** `plain` is the digits of π, `3d` the extruded slab. */
   mode: Mode;
@@ -23,8 +19,6 @@ export interface Settings {
   thickness: number;
   /** Rotation in turns per minute; 0 keeps the slab still. */
   speed: number;
-  /** Whether to show pi's key hints under the splash screen. */
-  instructions: InstructionsMode;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -33,7 +27,6 @@ export const DEFAULT_SETTINGS: Settings = {
   size: DEFAULT_SIZE,
   thickness: DEFAULT_THICKNESS,
   speed: 10,
-  instructions: "auto",
 };
 
 export const SIZE_RANGE = [0.5, 2] as const;
@@ -60,10 +53,6 @@ function problem(key: keyof Settings, value: unknown): string | undefined {
       return inRange(value, THICKNESS_RANGE)
         ? undefined
         : `thickness must be between ${THICKNESS_RANGE[0]} and ${THICKNESS_RANGE[1]}`;
-    case "instructions":
-      return INSTRUCTION_MODES.includes(value as InstructionsMode)
-        ? undefined
-        : `instructions must be one of ${INSTRUCTION_MODES.join(", ")}`;
     case "speed":
       return inRange(value, SPEED_RANGE)
         ? undefined
@@ -95,10 +84,10 @@ export function parseSettings(value: unknown): Settings | string {
 }
 
 export function describeSettings(settings: Settings): string {
-  const { mode, color, size, thickness, speed, instructions } = settings;
+  const { mode, color, size, thickness, speed } = settings;
   return mode === "plain"
-    ? `mode plain, color ${color}, instructions ${instructions}`
-    : `mode 3d, color ${color}, size ${size}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}, instructions ${instructions}`;
+    ? `mode plain, color ${color}`
+    : `mode 3d, color ${color}, size ${size}, thickness ${thickness}, speed ${speed}${speed === 0 ? " (still)" : " turns/min"}`;
 }
 
 const USAGE = [
@@ -107,7 +96,6 @@ const USAGE = [
   `/splash size <n>         ${SIZE_RANGE[0]}-${SIZE_RANGE[1]} times the default size, 1 is the default`,
   `/splash thickness <n>    ${THICKNESS_RANGE[0]}-${THICKNESS_RANGE[1]} block widths`,
   `/splash speed <n>        ${SPEED_RANGE[0]}-${SPEED_RANGE[1]} turns per minute, 0 keeps the π still`,
-  `/splash instructions <v> ${INSTRUCTION_MODES.join(", ")}: key hints under the π; auto hides them if pi's quietStartup is true`,
   "/splash reset            restore the defaults",
 ].join("\n");
 
@@ -151,13 +139,12 @@ export function completions(argument: string): { value: string; label: string }[
       .filter((name) => name.startsWith(prefix))
       .map((name) => ({ value: head + name, label: name }));
 
-  if (space === -1) return pick([...MODES, "color", "size", "thickness", "speed", "instructions", "reset"], text);
+  if (space === -1) return pick([...MODES, "color", "size", "thickness", "speed", "reset"], text);
   const key = text.slice(0, space);
   const prefix = text.slice(space + 1);
   const head = `${key} `;
   if (key === "color") return pick(PALETTE_NAMES, prefix, head);
   if (key === "mode") return pick(MODES, prefix, head);
-  if (key === "instructions") return pick(INSTRUCTION_MODES, prefix, head);
   if (key === "size") return pick(["0.6", "0.8", "1", "1.4", "2"], prefix, head);
   if (key === "thickness") return pick(["2", "4", "7", "10", "14"], prefix, head);
   if (key === "speed") return pick(["0", "3", "6", "12", "24"], prefix, head);
@@ -196,9 +183,4 @@ export function saveSettings(settings: Settings, path = getConfigPath()): void {
   const changed = Object.fromEntries(KEYS.filter((key) => settings[key] !== DEFAULT_SETTINGS[key]).map((key) => [key, settings[key]]));
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(changed, null, 2)}\n`);
-}
-
-/** Whether to show the key hints, given the setting and pi's `quietStartup`. */
-export function showInstructions(mode: InstructionsMode, quietStartup: boolean): boolean {
-  return mode === "on" || (mode === "auto" && !quietStartup);
 }

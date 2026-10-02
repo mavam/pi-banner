@@ -1,7 +1,9 @@
 /**
- * The key hints that pi shows in its startup header, laid out under the splash
- * screen. Pi's own formatters produce the hints, so they carry the user's
- * keybindings and theme colors; this module only arranges them.
+ * The key hints from pi's startup header that are worth saying, laid out under
+ * the splash screen. Keys that every terminal user knows, such as `esc` to
+ * interrupt or `ctrl+c` to exit, are left out. Pi's own formatters produce the
+ * hints, so they carry the user's keybindings and theme colors; this module
+ * only arranges them.
  */
 
 const RESET = "\x1b[0m";
@@ -47,26 +49,18 @@ function center(text: string, width: number): string {
   return " ".repeat(Math.max(0, Math.floor((width - visibleWidth(text)) / 2))) + text;
 }
 
-/** The hints in pi's collapsed header, in the order that pi shows them. */
+/** The hints on the collapsed line. */
 function compactHints(h: Hints): string[] {
   return [
-    h.hint("app.interrupt", "interrupt"),
-    h.raw(`${h.key("app.clear")}/${h.key("app.exit")}`, "clear/exit"),
     h.raw("/", "commands"),
     h.raw("!", "bash"),
     h.hint("app.tools.expand", "more"),
   ];
 }
 
-/** The hints in pi's expanded header, one per line. */
+/** The hints in the expanded list, one per line, in the order that pi shows them. */
 function expandedHints(h: Hints): string[] {
   return [
-    h.hint("app.interrupt", "to interrupt"),
-    h.hint("app.clear", "to clear"),
-    h.raw(`${h.key("app.clear")} twice`, "to exit"),
-    h.hint("app.exit", "to exit (empty)"),
-    h.hint("app.suspend", "to suspend"),
-    h.hint("tui.editor.deleteToLineEnd", "to delete to end"),
     h.hint("app.thinking.cycle", "to cycle thinking level"),
     h.raw(`${h.key("app.model.cycleForward")}/${h.key("app.model.cycleBackward")}`, "to cycle models"),
     h.hint("app.model.select", "to select model"),

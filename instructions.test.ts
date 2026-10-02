@@ -39,26 +39,23 @@ test("fit leaves short text alone and cuts long text without losing its colors",
   assert.ok(cut.endsWith("\x1b[0m"));
 });
 
-test("compactLines is pi's collapsed hint line, in pi's order, on one centered line", () => {
+test("compactLines is one centered line with the hints that need saying", () => {
   const lines = compactLines(PLAIN, 120);
 
   assert.equal(lines.length, 1);
-  assert.equal(
-    lines[0]!.trim(),
-    "<app.interrupt> interrupt · <app.clear/app.exit> clear/exit · </> commands · <!> bash · <app.tools.expand> more",
-  );
+  assert.equal(lines[0]!.trim(), "</> commands · <!> bash · <app.tools.expand> more");
   const width = visibleWidth(lines[0]!.trim());
   assert.equal(lines[0]!.length - lines[0]!.trimStart().length, Math.floor((120 - width) / 2));
 });
 
 test("compactLines wraps at hint boundaries when the terminal is narrow", () => {
-  const lines = compactLines(PLAIN, 60);
+  const lines = compactLines(PLAIN, 30);
   const text = lines.map((line) => line.trim()).join(" ");
 
   assert.ok(lines.length > 1);
-  for (const line of lines) assert.ok(visibleWidth(line) <= 60, line);
+  for (const line of lines) assert.ok(visibleWidth(line) <= 30, line);
   // Every hint appears once, in order, and none is split across lines.
-  const hints = ["> interrupt", "> clear/exit", "> commands", "> bash", "> more"];
+  const hints = ["> commands", "> bash", "> more"];
   for (const hint of hints) assert.equal(text.split(hint).length - 1, 1, hint);
   const at = hints.map((hint) => text.indexOf(hint));
   assert.deepEqual(at, [...at].sort((a, b) => a - b));
@@ -80,20 +77,28 @@ test("compactLines always fits, however narrow, with and without colors", () => 
 test("compactLines keeps the theme's colors and the muted separator", () => {
   const line = compactLines(COLORED, 120)[0]!;
 
-  assert.match(line, /\x1b\[2minterrupt|\x1b\[2mapp\.interrupt/);
+  assert.match(line, /\x1b\[2m\/\x1b\[22m/);
   assert.match(line, /\x1b\[38;2;130;130;130m · \x1b\[39m/);
-  assert.equal(strip(line).trim().split(" · ").length, 5);
+  assert.equal(strip(line).trim().split(" · ").length, 3);
 });
 
-test("expandedLines is pi's full list, one hint per line", () => {
+test("expandedLines lists the hints that are specific to pi, one per line", () => {
   const lines = expandedLines(PLAIN, 120).map((line) => line.trim());
 
-  assert.equal(lines.length, 19);
-  assert.equal(lines[0], "<app.interrupt> to interrupt");
-  assert.ok(lines.includes("<app.clear twice> to exit"));
+  assert.equal(lines.length, 13);
+  assert.equal(lines[0], "<app.thinking.cycle> to cycle thinking level");
   assert.ok(lines.includes("<app.model.cycleForward/app.model.cycleBackward> to cycle models"));
+  assert.ok(lines.includes("</> for commands"));
   assert.ok(lines.includes("<!!> to run bash (no context)"));
   assert.equal(lines.at(-1), "<drop files> to attach");
+});
+
+test("no view tells people what every terminal user already knows", () => {
+  const everything = [...compactLines(PLAIN, 200), ...expandedLines(PLAIN, 200)].join("\n");
+
+  for (const obvious of ["app.interrupt", "app.clear", "app.exit", "app.suspend", "deleteToLineEnd"]) {
+    assert.ok(!everything.includes(obvious), obvious);
+  }
 });
 
 test("expandedLines centers the list as one block so the hints line up", () => {

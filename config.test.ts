@@ -12,7 +12,6 @@ import {
   parseSettings,
   runCommand,
   saveSettings,
-  showInstructions,
   type Settings,
 } from "./config.ts";
 
@@ -29,7 +28,7 @@ function fails(args: string): string {
 }
 
 test("the defaults are a slowly turning 3D π in the pi logo colors", () => {
-  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", size: 1, thickness: 8, speed: 10, instructions: "auto" });
+  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", size: 1, thickness: 8, speed: 10 });
 });
 
 test("/splash without arguments describes the settings and changes nothing", () => {
@@ -64,21 +63,6 @@ test("/splash size is a multiple of the default size within a range", () => {
   assert.match(fails("size"), /Missing value for size/);
 });
 
-test("/splash instructions chooses when the key hints show", () => {
-  assert.equal(change("instructions off").instructions, "off");
-  assert.equal(change("instructions on").instructions, "on");
-  assert.equal(change("instructions auto", { ...DEFAULT_SETTINGS, instructions: "off" }).instructions, "auto");
-  assert.match(fails("instructions maybe"), /instructions must be one of auto, on, off/);
-  assert.match(fails("instructions"), /Missing value for instructions/);
-});
-
-test("showInstructions follows pi's quiet startup only in auto", () => {
-  assert.equal(showInstructions("auto", false), true);
-  assert.equal(showInstructions("auto", true), false);
-  assert.equal(showInstructions("on", true), true);
-  assert.equal(showInstructions("off", false), false);
-});
-
 test("/splash thickness is limited to a sensible range", () => {
   assert.equal(change("thickness 12").thickness, 12);
   assert.equal(change("thickness 0.5").thickness, 0.5);
@@ -101,7 +85,7 @@ test("/splash rejects missing values and unknown options", () => {
 });
 
 test("/splash reset restores the defaults", () => {
-  const tuned = { mode: "plain" as const, color: "fire", size: 1.6, thickness: 3, speed: 9, instructions: "off" as const };
+  const tuned = { mode: "plain" as const, color: "fire", size: 1.6, thickness: 3, speed: 9 };
 
   assert.deepEqual(change("reset", tuned), DEFAULT_SETTINGS);
 });
@@ -116,13 +100,8 @@ test("/splash never mutates the current settings", () => {
 test("completions cover options and values", () => {
   assert.deepEqual(
     completions("").map((item) => item.label),
-    ["plain", "3d", "color", "size", "thickness", "speed", "instructions", "reset"],
+    ["plain", "3d", "color", "size", "thickness", "speed", "reset"],
   );
-  assert.deepEqual(completions("in"), [{ value: "instructions", label: "instructions" }]);
-  assert.deepEqual(completions("instructions o"), [
-    { value: "instructions on", label: "on" },
-    { value: "instructions off", label: "off" },
-  ]);
   assert.deepEqual(completions("th"), [{ value: "thickness", label: "thickness" }]);
   assert.deepEqual(completions("si"), [{ value: "size", label: "size" }]);
   assert.ok(completions("size ").some((item) => item.value === "size 1"));
@@ -137,8 +116,8 @@ test("parseSettings fills in defaults and validates strictly", () => {
   assert.equal(typeof parseSettings({ sparkle: true }), "string");
   assert.match(parseSettings({ sparkle: true }) as string, /unknown setting "sparkle"/);
   assert.match(parseSettings({ speed: "6" }) as string, /speed must be/);
-  assert.match(parseSettings({ instructions: true }) as string, /instructions must be/);
-  assert.deepEqual(parseSettings({ instructions: "off" }), { ...DEFAULT_SETTINGS, instructions: "off" });
+  // The key hints follow pi's own `quietStartup`, so they have no setting here.
+  assert.match(parseSettings({ instructions: "off" }) as string, /unknown setting "instructions"/);
   assert.match(parseSettings({ size: 3 }) as string, /size must be between 0.5 and 2/);
   assert.deepEqual(parseSettings({ size: 1.5 }), { ...DEFAULT_SETTINGS, size: 1.5 });
   assert.match(parseSettings({ mode: "4d" }) as string, /mode must be/);
