@@ -1,6 +1,6 @@
-# pi-banner
+# pi-splash
 
-`pi-banner` is a pi extension that replaces the default header with a rainbow π
+`pi-splash` is a pi extension that replaces the default header with a rainbow π
 ASCII art banner.
 
 ## Setup

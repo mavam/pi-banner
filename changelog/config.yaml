@@ -1,5 +1,5 @@
-id: pi-banner
-name: Pi Banner
+id: pi-splash
+name: Pi Splash
 description: >-
-  A rainbow pi banner extension for pi.
-repository: mavam/pi-banner
+  A rainbow pi splash extension for pi.
+repository: mavam/pi-splash

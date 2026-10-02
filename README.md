@@ -1,4 +1,4 @@
-# 🌈 pi-banner
+# 🌈 pi-splash
 
 A [Pi](https://pi.dev) extension that replaces the default header with the
 rainbow π ASCII art banner.
@@ -6,7 +6,15 @@ rainbow π ASCII art banner.
 ## 🚀 Installation
 
 ```sh
-pi install npm:pi-banner
+pi install npm:pi-splash
+```
+
+If you previously installed `pi-banner`, replace it to avoid loading both
+extensions:
+
+```sh
+pi remove npm:pi-banner
+pi install npm:pi-splash
 ```
 
 ## ✨ What it does
@@ -33,6 +41,12 @@ Ascii art that makes `neofetch` users wish they'd thought of it first:
           70193          85211        05
         5596446           22948954930381
        9644288             10975665933
+```
+
+## 🧹 Uninstall
+
+```sh
+pi remove npm:pi-splash
 ```
 
 ## 📄 License

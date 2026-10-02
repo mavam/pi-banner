@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { PI_ART, renderBannerLines } from "./banner.ts";
+import { PI_ART, renderBannerLines } from "./splash.ts";
 
 function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
