@@ -1,0 +1,8 @@
+created: 2026-10-02
+title: A new spin on Pi
+intro: "Pi Splash now greets you with the rotating Pi logo in its original colors,\
+  \ with the mathematical \u03C0 available as an alternative. You can also start each\
+  \ session with a randomly chosen color scheme."
+source:
+  mode: sync-stable-queue
+  previous_stable: v0.2.0

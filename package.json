@@ -1,6 +1,6 @@
 {
   "name": "pi-splash",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A custom startup splash screen for Pi with a rotating π or Pi logo",
   "type": "module",
   "files": [
