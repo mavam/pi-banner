@@ -27,7 +27,7 @@ export interface Options {
 }
 
 export const DEFAULT_POSE: Pose = { yaw: -0.35, pitch: 0.2 };
-export const DEFAULT_THICKNESS = 7;
+export const DEFAULT_THICKNESS = 8;
 
 /** Rows above and below the art, matching the plain splash screen. */
 const MARGIN_ROWS = 1;

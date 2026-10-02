@@ -2,7 +2,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { COLOR_HELP, PALETTE_NAMES, parsePalette } from "./palette.ts";
+import { COLOR_HELP, DEFAULT_COLOR, PALETTE_NAMES, parsePalette } from "./palette.ts";
+import { DEFAULT_THICKNESS } from "./pi3d.ts";
 
 export const MODES = ["plain", "3d"] as const;
 export type Mode = (typeof MODES)[number];
@@ -19,10 +20,10 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  mode: "plain",
-  color: "rainbow",
-  thickness: 7,
-  speed: 0,
+  mode: "3d",
+  color: DEFAULT_COLOR,
+  thickness: DEFAULT_THICKNESS,
+  speed: 10,
 };
 
 export const THICKNESS_RANGE = [0.5, 20] as const;

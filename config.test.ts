@@ -27,22 +27,23 @@ function fails(args: string): string {
   return result.error;
 }
 
-test("the defaults keep today's plain rainbow", () => {
-  assert.deepEqual(DEFAULT_SETTINGS, { mode: "plain", color: "rainbow", thickness: 7, speed: 0 });
+test("the defaults are a slowly turning 3D π in the pi logo colors", () => {
+  assert.deepEqual(DEFAULT_SETTINGS, { mode: "3d", color: "pi", thickness: 8, speed: 10 });
 });
 
 test("/splash without arguments describes the settings and changes nothing", () => {
   const result = runCommand("", DEFAULT_SETTINGS);
 
   assert.ok(!("settings" in result) && "message" in result);
-  assert.match(result.message, /mode plain/);
+  assert.match(result.message, /mode 3d/);
   assert.match(result.message, /\/splash speed/);
 });
 
 test("/splash switches the mode, with or without the mode keyword", () => {
   assert.equal(change("3d").mode, "3d");
   assert.equal(change("mode 3d").mode, "3d");
-  assert.equal(change("plain", { ...DEFAULT_SETTINGS, mode: "3d" }).mode, "plain");
+  assert.equal(change("plain").mode, "plain");
+  assert.equal(change("3d", { ...DEFAULT_SETTINGS, mode: "plain" }).mode, "3d");
 });
 
 test("/splash color accepts presets and hex colors", () => {
@@ -115,10 +116,10 @@ test("settings are saved without the defaults and load back", () => {
   assert.equal(path, join(dir, "splash.json"));
   assert.deepEqual(loadSettings(path), { settings: DEFAULT_SETTINGS });
 
-  const tuned = { ...DEFAULT_SETTINGS, mode: "3d" as const, speed: 6 };
+  const tuned = { ...DEFAULT_SETTINGS, mode: "plain" as const, speed: 6 };
   saveSettings(tuned, path);
 
-  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { mode: "3d", speed: 6 });
+  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), { mode: "plain", speed: 6 });
   assert.deepEqual(loadSettings(path), { settings: tuned });
 
   saveSettings(DEFAULT_SETTINGS, path);

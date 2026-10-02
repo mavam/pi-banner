@@ -133,7 +133,9 @@ const PRESETS: Record<(typeof PALETTE_NAMES)[number], Palette> = {
   mono: gradient([rgb("#f2f2f2"), rgb("#8c8c8c")]),
 };
 
-export const DEFAULT_PALETTE = RAINBOW;
+/** The palette that new installations start with. */
+export const DEFAULT_COLOR = "pi";
+export const DEFAULT_PALETTE = PRESETS[DEFAULT_COLOR];
 
 const cache = new Map<string, Palette>();
 

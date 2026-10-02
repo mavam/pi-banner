@@ -62,7 +62,7 @@ function weakDots(lines: string[]): string[] {
   });
 }
 
-const PLAIN = DEFAULT_SETTINGS;
+const PLAIN = { ...DEFAULT_SETTINGS, mode: "plain" as const };
 const SOLID = { ...DEFAULT_SETTINGS, mode: "3d" as const };
 const FRONT = { pose: { yaw: 0, pitch: 0 }, scale: 1 };
 

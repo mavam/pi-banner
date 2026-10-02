@@ -93,8 +93,15 @@ test("SplashHeader applies new settings right away", () => {
 
   header.update({ ...DEFAULT_SETTINGS, mode: "3d", speed: 30 });
   assert.equal(header.spinning, true);
-  header.update({ ...DEFAULT_SETTINGS });
+  header.update({ ...DEFAULT_SETTINGS, mode: "plain" });
   assert.equal(header.spinning, false);
+  header.dispose();
+});
+
+test("SplashHeader turns by default", () => {
+  const { header } = makeHeader({});
+
+  assert.equal(header.spinning, true);
   header.dispose();
 });
 
