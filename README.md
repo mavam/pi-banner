@@ -28,6 +28,8 @@ pi install npm:pi-splash
   mathematical π available as an alternative
 - Switches to the `plain` mode for flat art: the digits of π, laid out as the
   π, or the Pi logo drawn in blocks
+- Keeps every color, whatever you pick, clear of both light and dark
+  backgrounds, so the splash screen reads on any terminal theme
 - Restores pi's usual startup screen when you remove or disable the extension,
   no hard feelings
 
@@ -66,8 +68,14 @@ several blend along its diagonal:
 /splash color #ff0000,#00ffff
 ```
 
+The splash screen cannot know your terminal's background, so it moves every color
+into a range of lightness that stands out from both light and dark backgrounds.
+Hues stay, but very light or very dark colors, such as pure white, black, or
+pale yellow, come out as mid-tones. The 3D shading only ever darkens a color,
+so a face turned toward the light does not wash out.
+
 The `pi` preset uses the colors of the Pi logo: with `symbol logo`, each pixel
-keeps its original coral, blue, or yellow. Size, thickness, and speed only affect
+keeps its coral or blue, and the yellow turns a deeper gold. Size, thickness, and speed only affect
 the 3D mode; symbol and color apply to both modes. For the mathematical π,
 `thickness` is measured in block widths. For the logo, `8` keeps the original
 Easter egg's proportions, and other values scale its depth proportionally.

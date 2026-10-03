@@ -4,7 +4,7 @@ import test from "node:test";
 import { LOGO_ART, LOGO_PIXELS } from "./art.ts";
 import { DEFAULT_SETTINGS } from "./config.ts";
 import { renderLogo3dLines } from "./logo3d.ts";
-import { PALETTE_NAMES, parsePalette } from "./palette.ts";
+import { PALETTE_NAMES, legible, parsePalette, rgbToHsl, type Rgb } from "./palette.ts";
 import { DEFAULT_POSE } from "./pi3d.ts";
 import { renderLines } from "./splash.ts";
 
@@ -31,14 +31,19 @@ test("the default splash renders the Pi logo in its original colors", () => {
   assert.deepEqual(renderLines(DEFAULT_SETTINGS, 80), renderLogo3dLines(80));
 });
 
+/** The escape sequence that colors the blocks of a plain splash screen. */
+function fg([r, g, b]: Rgb): RegExp {
+  return new RegExp(`\\x1b\\[38;2;${r};${g};${b}m█`);
+}
+
 test("the plain logo uses Pi's original 4x4 pixel layout and brand colors", () => {
   assert.deepEqual(LOGO_PIXELS, ["ccc.", "b.c.", "bb.y", "b..y"]);
   const lines = renderLines({ ...LOGO, mode: "plain" }, 80);
   const pad = (80 - 24) / 2;
   assert.deepEqual(lines.slice(1, -1).map((line) => strip(line).slice(pad)), LOGO_ART);
-  assert.match(lines[1]!, /\x1b\[38;2;228;138;122m█/);
-  assert.match(lines[4]!, /\x1b\[38;2;79;142;179m█/);
-  assert.match(lines[7]!, /\x1b\[38;2;234;182;93m█/);
+  assert.match(lines[1]!, fg(legible([228, 138, 122])));
+  assert.match(lines[4]!, fg(legible([79, 142, 179])));
+  assert.match(lines[7]!, fg(legible([234, 182, 93])));
   assert.doesNotMatch(strip(lines.join("")), /[0-9]/);
 });
 
@@ -132,7 +137,7 @@ test("every palette paints the logo without changing its geometry", () => {
     assert.ok(Number(r) > Number(g) && Number(r) > Number(b));
   }
   const plain = renderLines({ ...LOGO, mode: "plain", color: "#00ff00" }, 80);
-  assert.match(plain.join(""), /\x1b\[38;2;0;255;0m█/);
+  assert.match(plain.join(""), fg(legible([0, 255, 0])));
 });
 
 test("reused raster buffers clear old geometry and colors across frames and resizes", () => {
@@ -143,4 +148,18 @@ test("reused raster buffers clear old geometry and colors across frames and resi
   renderLogo3dLines(120, { size: 2 });
   renderLogo3dLines(0);
   assert.deepEqual(renderLogo3dLines(80), first);
+});
+
+test("the logo's faces keep the hue of their color instead of washing out", () => {
+  const palette = parsePalette("#3a7bd5")!;
+  const hue = rgbToHsl([58, 123, 213])[0];
+  for (const yaw of [-0.9, -0.35, 0, 0.5, 1.4, 2.6, 3.5]) {
+    const lines = renderLogo3dLines(80, { pose: { yaw, pitch: 0.2 }, palette });
+    const colors = [...lines.join("").matchAll(/\x1b\[38;2;(\d+);(\d+);(\d+)m/g)];
+
+    assert.ok(colors.length > 0);
+    for (const [, r, g, b] of colors) {
+      assert.ok(Math.abs(rgbToHsl([Number(r), Number(g), Number(b)])[0] - hue) <= 8, `yaw ${yaw}: ${r},${g},${b}`);
+    }
+  }
 });

@@ -68,6 +68,67 @@ export function shade(color: Rgb, factor: number): Rgb {
   return hslToRgb(h, s, Math.min(0.92, l * factor));
 }
 
+/** Typical terminal backgrounds that the art has to stand out from. */
+export const DARK_BACKGROUND: Rgb = [24, 24, 28];
+export const LIGHT_BACKGROUND: Rgb = [249, 247, 244];
+
+/**
+ * The contrast that the art keeps against both backgrounds. WCAG asks for 3
+ * from graphics, but the band that is that far from both is narrow, and flat
+ * colors in it look dull. At 2.5 the Pi logo's coral and blue stay as they are.
+ */
+export const MIN_CONTRAST = 2.5;
+
+function luminance([r, g, b]: Rgb): number {
+  const [lr, lg, lb] = [r, g, b].map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * lr! + 0.7152 * lg! + 0.0722 * lb!;
+}
+
+/** The WCAG contrast ratio between two colors, from 1 to 21. */
+export function contrastRatio(a: Rgb, b: Rgb): number {
+  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (light! + 0.05) / (dark! + 0.05);
+}
+
+/** The luminance that keeps `MIN_CONTRAST` against the light and the dark background. */
+const LUMINANCE_BAND = [
+  MIN_CONTRAST * (luminance(DARK_BACKGROUND) + 0.05) - 0.05,
+  (luminance(LIGHT_BACKGROUND) + 0.05) / MIN_CONTRAST - 0.05,
+] as const;
+
+const legibleColors = new Map<number, Rgb>();
+
+/**
+ * Move a color into the luminance band that stands out from both light and
+ * dark backgrounds, keeping its hue and saturation. Colors in the band are left alone.
+ * Apply it to base colors before shading them, so shades keep their range.
+ */
+export function legible(color: Rgb): Rgb {
+  const key = (color[0] << 16) | (color[1] << 8) | color[2];
+  const known = legibleColors.get(key);
+  if (known) return known;
+
+  const [lowest, highest] = LUMINANCE_BAND;
+  const current = luminance(color);
+  let result = color;
+  if (current < lowest || current > highest) {
+    const target = Math.min(highest, Math.max(lowest, current));
+    const [h, s] = rgbToHsl(color);
+    let [low, high] = [0, 1];
+    for (let step = 0; step < 14; step += 1) {
+      const middle = (low + high) / 2;
+      if (luminance(hslToRgb(h, s, middle)) < target) low = middle;
+      else high = middle;
+    }
+    result = hslToRgb(h, s, (low + high) / 2);
+  }
+  legibleColors.set(key, result);
+  return result;
+}
+
 function parseHex(text: string): Rgb | undefined {
   const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text);
   if (!match) return undefined;

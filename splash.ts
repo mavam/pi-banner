@@ -13,7 +13,7 @@ import {
 } from "./config.ts";
 import { compactLines, expandedLines, type Hints } from "./instructions.ts";
 import { renderLogo3dLines } from "./logo3d.ts";
-import { DEFAULT_PALETTE, parsePalette, symbolPalette, type Palette } from "./palette.ts";
+import { DEFAULT_PALETTE, legible, parsePalette, symbolPalette, type Palette } from "./palette.ts";
 import { DEFAULT_POSE, render3dLines } from "./pi3d.ts";
 
 export { PI_ART };
@@ -35,7 +35,7 @@ function paletteLine(line: string, row: number, palette: Palette): string {
       continue;
     }
 
-    const [r, g, b] = palette.at(index, row);
+    const [r, g, b] = legible(palette.at(index, row));
     result += `\x1b[38;2;${r};${g};${b}m${ch}`;
   }
 

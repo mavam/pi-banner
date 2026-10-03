@@ -4,7 +4,7 @@ import test from "node:test";
 import { PI_ART, renderLines } from "./splash.ts";
 import { DEFAULT_SETTINGS } from "./config.ts";
 import { DEFAULT_POSE, render3dLines } from "./pi3d.ts";
-import { parsePalette } from "./palette.ts";
+import { legible, parsePalette, rgbToHsl, type Rgb } from "./palette.ts";
 
 function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
@@ -265,7 +265,8 @@ test("renderLines passes size and the row limit through, and plain ignores them"
 test("renderLines paints the plain splash screen with the palette", () => {
   const sunset = renderLines({ ...PLAIN, color: "#00ff00" }, 80)[2]!;
 
-  assert.match(sunset, /\x1b\[38;2;0;255;0m/);
+  const [r, g, b] = legible([0, 255, 0]);
+  assert.match(sunset, new RegExp(`\\x1b\\[38;2;${r};${g};${b}m`));
   assert.match(stripAnsi(sunset), /5028841971/);
 });
 
@@ -274,4 +275,18 @@ test("renderLines switches between the plain splash screen and the 3D π", () =>
   assert.notDeepEqual(renderLines(SOLID, 80), renderLines(PLAIN, 80));
   assert.match(stripAnsi(renderLines(PLAIN, 80).join("")), /3\.141592653589793/);
   assert.doesNotMatch(stripAnsi(renderLines(SOLID, 80).join("")), /[0-9]/);
+});
+
+test("lighting only darkens the slab, so a color never washes out into a pale tint", () => {
+  const base: Rgb = [58, 123, 213];
+  const [, , baseLightness] = rgbToHsl(legible(base));
+  for (const yaw of [-0.9, -0.35, 0, 0.5, 1.4, 2.6, 3.5]) {
+    const lines = render3dLines(80, { pose: { yaw, pitch: 0.2 }, palette: parsePalette("#3a7bd5")! });
+    const colors = [...lines.join("").matchAll(/\x1b\[38;2;(\d+);(\d+);(\d+)m/g)];
+
+    assert.ok(colors.length > 0);
+    for (const [, r, g, b] of colors) {
+      assert.ok(rgbToHsl([Number(r), Number(g), Number(b)])[2] <= baseLightness + 0.02, `yaw ${yaw}: ${r},${g},${b}`);
+    }
+  }
 });
