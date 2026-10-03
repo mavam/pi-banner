@@ -8,7 +8,7 @@
  * The fullscreen dissolve, sliding puzzle, and starfield are not part of the startup header.
  */
 import { LOGO_PIXELS, LOGO_PIXEL_COLUMNS, LOGO_PIXEL_ROWS } from "./art.ts";
-import { DEFAULT_PALETTE, symbolPalette, type Rgb } from "./palette.ts";
+import { DEFAULT_PALETTE, legible, symbolPalette, type Rgb } from "./palette.ts";
 import { DEFAULT_POSE, DEFAULT_SIZE, DEFAULT_THICKNESS, type Options, type Pose as Rotation } from "./pi3d.ts";
 
 interface LogoBox {
@@ -32,7 +32,12 @@ const DOTS_PER_PIXEL = LOGO_PIXEL_ROWS * 4;
 const DOT_BITS = [0x01, 0x08, 0x02, 0x10, 0x04, 0x20, 0x40, 0x80];
 const LIGHT = normalize([-0.45, -0.6, 0.75]);
 const HALF_VECTOR = normalize([LIGHT[0], LIGHT[1], LIGHT[2] + 1]);
-const BACKGROUND: Rgb = [0, 0, 0];
+/**
+ * The logo is lit as on a light background: faces only get darker than their
+ * colors, so highlights never wash the brand colors out into pale tints. That
+ * also suits dark terminals, where the colors are bright enough already.
+ */
+const BACKGROUND: Rgb = [160, 160, 160];
 const RESET = "\x1b[0m";
 
 function normalize(v: Rgb): Rgb {
@@ -381,10 +386,10 @@ export function renderLogo3dLines(width: number, options: Options = {}): string[
     [...line].flatMap((pixel, column) => pixel === "." ? [] : [{
       min: [column - 2, row - 2, -depth / 2] as const,
       max: [column - 1, row - 1, depth / 2] as const,
-      color: palette.at(
+      color: legible(palette.at(
         (column + 0.5) * LOGO_PIXEL_COLUMNS,
         (row + 0.5) * LOGO_PIXEL_ROWS,
-      ),
+      )),
     }]),
   );
   const scale = options.scale === undefined
@@ -407,7 +412,12 @@ export function renderLogo3dLines(width: number, options: Options = {}): string[
         continue;
       }
       const count = raster.counts[cell]!;
-      const color = `\x1b[38;2;${Math.round(raster.rgb[cell * 3]! / count)};${Math.round(raster.rgb[cell * 3 + 1]! / count)};${Math.round(raster.rgb[cell * 3 + 2]! / count)}m`;
+      const [red, green, blue] = legible([
+        Math.round(raster.rgb[cell * 3]! / count),
+        Math.round(raster.rgb[cell * 3 + 1]! / count),
+        Math.round(raster.rgb[cell * 3 + 2]! / count),
+      ]);
+      const color = `\x1b[38;2;${red};${green};${blue}m`;
       line += " ".repeat(blanks);
       blanks = 0;
       if (color !== previous) {

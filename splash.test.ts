@@ -4,6 +4,7 @@ import test from "node:test";
 import { SplashHeader, PI_ART, renderLines, renderSplashLines, topPadding } from "./splash.ts";
 import { visibleWidth, type Hints } from "./instructions.ts";
 import { DEFAULT_SETTINGS, type Settings } from "./config.ts";
+import { DARK_BACKGROUND, LIGHT_BACKGROUND, MIN_CONTRAST, PALETTE_NAMES, contrastRatio, type Rgb } from "./palette.ts";
 
 function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
@@ -289,4 +290,23 @@ test("SplashHeader wraps the hints on a narrow terminal", () => {
 
   assert.ok(hints.length > 1);
   for (const line of lines) assert.ok(visibleWidth(line) <= 40, line);
+});
+
+test("every color stands out from both light and dark backgrounds", () => {
+  for (const mode of ["plain", "3d"] as const) {
+    for (const symbol of ["pi", "logo"] as const) {
+      for (const color of [...PALETTE_NAMES, "#ffff00", "#0000ff", "#fff", "#000"]) {
+        const settings: Settings = { ...DEFAULT_SETTINGS, mode, symbol, color };
+        const colors = [...renderLines(settings, 80, 0.7).join("").matchAll(/\x1b\[38;2;(\d+);(\d+);(\d+)m/g)];
+
+        assert.ok(colors.length > 0, `${mode} ${symbol} ${color}`);
+        for (const [, r, g, b] of colors) {
+          const rgb: Rgb = [Number(r), Number(g), Number(b)];
+          for (const background of [DARK_BACKGROUND, LIGHT_BACKGROUND]) {
+            assert.ok(contrastRatio(rgb, background) >= MIN_CONTRAST - 0.1, `${mode} ${symbol} ${color} ${rgb}`);
+          }
+        }
+      }
+    }
+  }
 });

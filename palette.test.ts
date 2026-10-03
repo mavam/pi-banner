@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DEFAULT_COLOR, DEFAULT_PALETTE, PALETTE_NAMES, hslToRgb, parsePalette, randomPreset, rgbToHsl, shade, symbolPalette } from "./palette.ts";
+import { DEFAULT_COLOR, DEFAULT_PALETTE, DARK_BACKGROUND, LIGHT_BACKGROUND, MIN_CONTRAST, PALETTE_NAMES, contrastRatio, hslToRgb, legible, parsePalette, randomPreset, rgbToHsl, shade, symbolPalette } from "./palette.ts";
 
 test("parsePalette knows every preset", () => {
   for (const name of PALETTE_NAMES) assert.ok(parsePalette(name), name);
@@ -107,4 +107,41 @@ test("rgbToHsl inverts hslToRgb", () => {
     assert.ok(Math.abs(h - hue) < 2, `hue ${hue}`);
     assert.ok(Math.abs(s - 0.85) < 0.02 && Math.abs(l - 0.5) < 0.02);
   }
+});
+
+test("contrastRatio spans 1 to 21", () => {
+  assert.equal(contrastRatio([255, 255, 255], [255, 255, 255]), 1);
+  assert.ok(Math.abs(contrastRatio([0, 0, 0], [255, 255, 255]) - 21) < 1e-9);
+});
+
+function stands_out(color: [number, number, number]): boolean {
+  return [DARK_BACKGROUND, LIGHT_BACKGROUND].every(
+    (background) => contrastRatio(color, background) >= MIN_CONTRAST - 0.05,
+  );
+}
+
+test("legible moves pale and dark colors into the band that suits both backgrounds", () => {
+  for (const color of [[255, 255, 255], [0, 0, 0], [255, 255, 0], [0, 0, 255], [20, 20, 24], [240, 240, 240]] as const) {
+    const result = legible([...color]);
+
+    assert.ok(stands_out(result), `${color} -> ${result}`);
+  }
+});
+
+test("legible keeps the hue of the colors it moves", () => {
+  for (const hue of [0, 60, 120, 200, 280, 330]) {
+    const color = hslToRgb(hue, 0.9, 0.5);
+    const [moved] = rgbToHsl(legible(color));
+
+    assert.ok(Math.abs(moved - hue) < 4, `hue ${hue} became ${moved}`);
+  }
+});
+
+test("legible leaves colors that already suit both backgrounds alone", () => {
+  const coral: [number, number, number] = [228, 138, 122];
+  const gray: [number, number, number] = [119, 119, 119];
+
+  assert.ok(stands_out(gray));
+  assert.deepEqual(legible(gray), gray);
+  assert.equal(legible(coral) === coral || stands_out(legible(coral)), true);
 });

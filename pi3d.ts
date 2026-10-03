@@ -1,5 +1,5 @@
 import { PI_ART } from "./art.ts";
-import { BASE_LIGHTNESS, DEFAULT_PALETTE, shade, type Palette, type Rgb } from "./palette.ts";
+import { BASE_LIGHTNESS, DEFAULT_PALETTE, legible, shade, type Palette, type Rgb } from "./palette.ts";
 
 /**
  * A 3D π: the splash screen's ASCII art extruded into a slab and ray-cast into
@@ -256,7 +256,8 @@ export function render3dLines(width: number, options: Options = {}): string[] {
     const nx = m[axis]! * sign;
     const ny = m[3 + axis]! * sign;
     const nz = m[6 + axis]! * sign;
-    return 0.4 + 0.4 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+    // Faces only get darker than the base color, so highlights never wash it out.
+    return 0.4 + (BASE_LIGHTNESS - 0.4) * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
   });
   const colors = new Map<number, Rgb>();
 
@@ -274,7 +275,7 @@ export function render3dLines(width: number, options: Options = {}): string[] {
       const key = (hit.row * COLUMNS + hit.column) * FACES.length + face;
       let color = colors.get(key);
       if (!color) {
-        color = shade(palette.at(hit.column, hit.row), lightness[face]! / BASE_LIGHTNESS);
+        color = shade(legible(palette.at(hit.column, hit.row)), lightness[face]! / BASE_LIGHTNESS);
         colors.set(key, color);
       }
 
@@ -320,7 +321,12 @@ export function render3dLines(width: number, options: Options = {}): string[] {
       line += " ".repeat(blanks);
       blanks = 0;
       const n = counts[cell]!;
-      const next = `\x1b[38;2;${Math.round(rgb[cell * 3]! / n)};${Math.round(rgb[cell * 3 + 1]! / n)};${Math.round(rgb[cell * 3 + 2]! / n)}m`;
+      const [red, green, blue] = legible([
+        Math.round(rgb[cell * 3]! / n),
+        Math.round(rgb[cell * 3 + 1]! / n),
+        Math.round(rgb[cell * 3 + 2]! / n),
+      ]);
+      const next = `\x1b[38;2;${red};${green};${blue}m`;
       if (next !== color) {
         line += next;
         color = next;
